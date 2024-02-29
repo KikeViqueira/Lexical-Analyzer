@@ -1,6 +1,9 @@
 #include "analizadorSintactico.h"
+#include "abb.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "TS.h"
 
 int main(int argc, char **argv) {
     // Verificamos si el archivo se ha pasado por argumentos
@@ -14,7 +17,8 @@ int main(int argc, char **argv) {
     para que termine la ejecución del programa y su correspondiente liberación de memoria.*/
 
     // Inicializamos la tabla de símbolos
-
+    TABB arbol;
+    initTS(&arbol);
     // Llamamos al analizador sintáctico
     startAnalizadorSintactico(argv[1]);
 }

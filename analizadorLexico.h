@@ -3,8 +3,8 @@
 
 // Estructura para almacenar los tokens y pasarselos al analizador sintáctico
 typedef struct {
-    int numToken;
     char *lexema;
+    int numToken;
 } token;
 
 // Función para inicializar el analizador léxico
@@ -14,6 +14,6 @@ void initLexico(char *archivo);
 token siguienteToken();
 
 // Función para finalizar el analizador léxico
-void finalizarLexico();
+//void finalizarLexico();
 
 #endif

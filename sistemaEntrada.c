@@ -48,3 +48,7 @@ char siguienteCaracter() {
         return EOF; // Fin de archivo
     }
 }
+
+void retrocederCaracter() {
+    indice--;
+}

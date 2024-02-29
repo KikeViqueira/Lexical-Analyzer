@@ -1,7 +1,7 @@
 #ifndef DEFINICIONES_H
 #define DEFINICIONES_H
 
-// Componentes léxicos
+// Palabras reservadas
 #define IMPORT 273
 #define FROM 274
 #define AS 275
@@ -17,15 +17,26 @@
 #define OR 285
 #define NOT 286
 #define PRINT 287
-
-// Estructura para la tabla de símbolos
-typedef struct {
-    int componenteLexico;
-    char *lexema;
-} EntradaTablaSimbolos;
-
-// Definición de la tabla de símbolos como un array de estructuras
-#define MAX_ENTRADAS_TS 256
-EntradaTablaSimbolos tablaSimbolos[MAX_ENTRADAS_TS];
+#define FALSE 288
+#define NONE 289
+#define TRUE 290
+#define CLASS 291
+#define CONTINUE 292
+#define BREAK 293
+#define EXCEPT 294
+#define FINALLY 295
+#define IS 296
+#define LAMBDA 297
+#define TRY 298
+#define ASSERT 299
+#define DEL 300
+#define GLOBAL 301
+#define NONLOCAL 302
+#define WITH 303
+#define ASYNC 304
+#define AWAIT 305
+#define PASS 306
+#define RAISE 307
+#define YIELD 308
 
 #endif
