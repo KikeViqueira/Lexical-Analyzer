@@ -10,6 +10,9 @@ char siguienteCaracter();
 // Funcion para retroceder caracter
 void retrocederCaracter();
 
+//Funcion para saltar un carcter y no analizarlo
+void omitirCaracter();
+
 // Funcion para finalizar el sistema de entrada
 //void finalizarEntrada();
 

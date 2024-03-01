@@ -4,8 +4,10 @@
 // Función para inicializar la tabla y cargar las palabras reservadas
 void initTS();
 
-// Función para buscar un lexema dentro de la tabla de símbolos
+// Función para buscar un lexema dentro de la tabla de símbolos, devuelve su numero correspondiente
+int buscarLexema(char *lexema_a_buscar);
 
 // Función para insertar un lexema en la tabla de símbolos
+void insertarLexema(char *lexema_a_insertar);
 
 #endif

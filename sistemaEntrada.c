@@ -52,3 +52,7 @@ char siguienteCaracter() {
 void retrocederCaracter() {
     indice--;
 }
+
+void omitirCaracter(){
+    indice++;
+}
