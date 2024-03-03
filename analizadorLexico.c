@@ -28,7 +28,7 @@ token siguienteToken() {
 
     char c;
     int estado = 0;
-    while ((c = siguienteCaracter()) != EOF) {
+    if ((c = siguienteCaracter()) != EOF) {
         switch (estado) {
         case 0:
             if (c == ' ' || c == '\n' || c == '\t') {
@@ -36,6 +36,11 @@ token siguienteToken() {
             } else if (isalpha(c) || c == '_') {
                 // Si el caracter es una letra o un guión bajo, quien se encargará de procesar la cadena será el autómata de cadenas alfoanuméricas
                 automataAlphaNumerico(c,&componente);
+                //buscamos en la tabla de simbolos si existe el lexema para saber su numero de token y se lo añadimos al acmpo correspondiente del componente
+                componente.numToken=buscarLexema(componente.lexema);
+                //Devolvemos el componente al analizador sintactico
+                return componente;
+
 
             } else if (isdigit(c)) {
                 // Si el caracter es un dígito, quien se encargará de procesar la cadena será el autómata de números
@@ -49,10 +54,7 @@ token siguienteToken() {
             break;
         }
     }
-    //buscamos en la tabla de simbolos si existe el lexema para saber su numero de token
 
-    //Devolvemos el componente al analizador sintactico
-    return componente;
 }
 
 void automataAlphaNumerico(char c, token *componente) {

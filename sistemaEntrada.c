@@ -56,3 +56,6 @@ void retrocederCaracter() {
 void omitirCaracter(){
     indice++;
 }
+
+
+//Finalizar sistema de entrada (Funcion donde liberaremos el buffer que contiene el contenido del fichero)

@@ -17,8 +17,11 @@ int main(int argc, char **argv) {
     para que termine la ejecución del programa y su correspondiente liberación de memoria.*/
 
     // Inicializamos la tabla de símbolos
-    TABB arbol;
-    initTS(&arbol);
+    initTS();
+
     // Llamamos al analizador sintáctico
     startAnalizadorSintactico(argv[1]);
+
+    //Una vez acaba el analizador sintáctico se le devuelve el control del programa al main que liberará la memoria y recursos
+    //Utilizados antes de finalizar la ejecución
 }
