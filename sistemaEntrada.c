@@ -42,7 +42,7 @@ char siguienteCaracter() {
 
     char c = *dobleCentinela.delantero; //Cogemos valor de la direccion de memoria
     dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1
-    printf("%c\n",c);
+    //printf("%c\n",c);
     return c;
 
 }
@@ -50,7 +50,7 @@ char siguienteCaracter() {
 void retrocederCaracter() {
 
     dobleCentinela.delantero--;
-    dobleCentinela.inicio = dobleCentinela.delantero; //Igualamso las direcciones de memoria
+   // dobleCentinela.inicio = dobleCentinela.delantero; //Igualamso las direcciones de memoria
 
 }
 

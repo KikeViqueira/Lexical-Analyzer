@@ -11,9 +11,8 @@
 void automataAlphaNumerico( char c,token *componente);
 void automataCodificaciones(char c, char *buffer);
 void automataNumerico(char c, token *componente);
-void automataFlotantes(char c, char *bufferAux,int *indice,int *capacidad);
-void automataExponentes(char c, char *bufferAux,int *indice,int *capacidad);
-
+void automataFlotantes(char c, char *bufferAux,int *indice,int *capacidad, int estadoCorrespondiente);
+void retrocederLexema(char *lexema, int retroceso,int *indice);
 // Definimos la función de incialización del analizador léxico
 void initLexico(char *archivo) {
     // llamamos al inicilizador del sistema de entrada pasándole el archivo por referencia
@@ -28,7 +27,7 @@ token siguienteToken() {
     char c;
     int estado = 0;
 
-    int capacidad = 7; //Tamaño inicial del buffer
+    int capacidad = 70; //Tamaño inicial del buffer
     char *bufferAux = (char*)malloc(sizeof (char)*capacidad);
     int indice = 0;
 
@@ -39,18 +38,12 @@ token siguienteToken() {
                     automataAlphaNumerico(c,&componente);
                     estado=0;
                 }
-                else if(isdigit(c)){
+                else if(isdigit(c) || c=='.'){//Si es número o . llamamos al autómata numérico
                     automataNumerico(c, &componente);
                     estado=0;
                 }
-                else if(c=='.'){
-                    c=siguienteCaracter();
-                    if(isdigit(c)){
-                        automataFlotantes(c,bufferAux,&indice,&capacidad);
-                    }else{
-                        //Se envia el punto asi tal cual
-                    }
-                }
+
+
 
 
         }
@@ -93,40 +86,181 @@ void automataNumerico(char c, token *componente){
 
     switch (estado) {
         case 0:
-            //Automata de formatos de codificación (binario, hexadecimal, octal)
+            //Miramos si teenemos que ir al automáta
             if(c=='0'){
                 bufferAux[indice++]=c;
-                automataCodificaciones(c,bufferAux);
-
-            }else{
                 estado=1;
+
+            }else if(isdigit(c)){//Se supone ya que no es cero por la primera comprobracion
+                bufferAux[indice++]=c;
+                estado=11;
+            }else if(c=='.'){//Este if es para aceptar números del estilo de .0001
+                bufferAux[indice++]=c;
+                automataFlotantes(c,bufferAux,&indice,&capacidad,0);
+            }else{
+                break;
             }
 
         case 1:
-
-            //Estado que representa el automata de números enteros
+            //automata de codificaciones (binario, hexadecimal y octal)
+            c=siguienteCaracter();
             bufferAux[indice++]=c;
-            //llamamos al automata de enteros
-            while(isdigit(c=siguienteCaracter()) || c=='_'){
-                bufferAux[indice++]=c;
-                if (c=='_' && ((c=siguienteCaracter())=='_')) {
-                    retrocederCaracter();
-                    break; //Si el siguiente caracter al _ es otro _ el lexema no se puede aceptar
-                }
+            if(c=='b' || c=='B'){
+                estado=2;
+            }else if (c=='x' || c=='X'){
+                estado=5;
+            }else if (c=='o' || c=='O'){
+                estado=8;
+            }else if(c=='j'||c=='J'){
+                estado=13;
+            }else if(isdigit(c)){
+                estado=11;
+            }
+            else{
+                retrocederLexema(bufferAux,1,&indice);
+                break;
             }
 
-            if(c=='.'){
-                //llamamos al automata de números flotantes
-                automataFlotantes(c,bufferAux,&indice,&capacidad);
-            }else if(c=='E' || c=='e'){
-                //llamamos al automatade números con exponentes
-                automataExponentes(c,bufferAux,&indice,&capacidad);
+        //Del case 2 al 4 estamos en la posibilidad de números binarios
+        case 2:
+            //Estamos en el caso de los binarios
+            c=siguienteCaracter();
+            bufferAux[indice++]=c;
+
+            if(c=='0'||c=='1'){
+                estado=3;
             }else{
-                //retrocedemos para tener el lexema bien formado
-                retrocederCaracter();
+                retrocederLexema(bufferAux,2,&indice);
+                break;
             }
 
-            break;
+        case 3:
+            while((c=siguienteCaracter())=='0' || c=='1'){
+                bufferAux[indice++]=1;
+            }
+            if(c=='_'){
+                bufferAux[indice++]=1;
+                estado=4;
+            }else{
+                //Se ha aceptado el lexama, retrocedemos una posicion
+                retrocederLexema(bufferAux,1,&indice);
+                break;
+            }
+
+        case 4:
+            c=siguienteCaracter();
+            bufferAux[indice++]=c;
+            if(c=='0' || c=='1'){
+                estado=3;
+            }else{
+                //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
+                retrocederLexema(bufferAux,2,&indice);
+                break;//Salimos del switch
+            }
+
+        //Del case 5 al 7 estamos en la posibilidad de números octales
+        case 5:
+            //Estamos en el caso de los binarios
+            c=siguienteCaracter();
+            bufferAux[indice++]=c;
+
+            if(c>='0' && c<='7' ){
+                estado=6;
+            }else{
+                retrocederLexema(bufferAux,2,&indice);
+                break;
+            }
+
+        case 6:
+            while((c=siguienteCaracter())>='0' && c<='7' ){
+                bufferAux[indice++]=1;
+            }
+            if(c=='_'){
+                bufferAux[indice++]=1;
+                estado=7;
+            }else{
+                //Se ha aceptado el lexama, retrocedemos una posicion
+                retrocederLexema(bufferAux,1,&indice);
+                break;
+            }
+
+        case 7:
+            c=siguienteCaracter();
+            bufferAux[indice++]=c;
+            if(c>='0' && c<='7'){
+                estado=6;
+            }else{
+                //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
+                retrocederLexema(bufferAux,2,&indice);
+                break;//Salimos del switch
+            }
+
+        //Del case 8 al 10 estamos en la posibilidad de números hexadecimales
+        case 8:
+            //Estamos en el caso de los binarios
+            c=siguienteCaracter();
+            bufferAux[indice++]=c;
+
+            if(isxdigit(c)){
+                estado=9;
+            }else{
+                retrocederLexema(bufferAux,2,&indice);
+                break;
+            }
+
+        case 9:
+            while(isxdigit(c=siguienteCaracter())){
+                bufferAux[indice++]=1;
+            }
+            if(c=='_'){
+                bufferAux[indice++]=1;
+                estado=10;
+            }else{
+                //Se ha aceptado el lexama, retrocedemos una posicion
+                retrocederLexema(bufferAux,1,&indice);
+                break;
+            }
+
+        case 10:
+            c=siguienteCaracter();
+            bufferAux[indice++]=c;
+            if(isxdigit(c)){
+                estado=9;
+            }else{
+                //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
+                retrocederLexema(bufferAux,2,&indice);
+                break;//Salimos del switch
+            }
+
+
+        case 11:
+            while(isdigit(c=siguienteCaracter())){
+                bufferAux[indice++]=c;
+            }
+
+            if(c=='_'){
+                bufferAux[indice++]=1;
+                estado=12;
+            }else{
+                //Se ha aceptado el lexama, retrocedemos una posicion
+                retrocederLexema(bufferAux,1,&indice);
+                break;
+            }
+
+        case 12:
+            c=siguienteCaracter();
+            bufferAux[indice++]=c;
+            if(isdigit(c)){
+                estado=11;
+            }else{
+                //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
+                retrocederLexema(bufferAux,2,&indice);
+                break;//Salimos del switch
+            }
+
+
+            //En caso de numeros flotantes se encargará de ellos el autómata de flotantes
+
 
     }
 
@@ -136,90 +270,80 @@ void automataNumerico(char c, token *componente){
 
 }
 
-/**Autómata que reconoce los distintos tipos de condificación (Binario, hexadecimal y octal)**/
-void automataCodificaciones(char c, char *buffer){
-    int capacidad = 70; //Tamaño inicial del buffer
-    char *bufferAux = (char*)malloc(sizeof (char)*capacidad);
-    int indice = 0;
 
-    //Para que sea aceptado por este automata tiene que ser siguiente caracter una B b x X o O
-    c=siguienteCaracter();
 
-    int estado=0;
+void automataFlotantes(char c, char *bufferAux,int *indice,int *capacidad, int estadoCorrespondiente){
 
-    if(c=='b' || c=='B') estado=0;
-    else if(c=='o' || c=='O') estado=1;
-    else if(c=='x' || c=='X') estado=2;
-    else estado=3;
+    switch (estadoCorrespondiente) {
 
-    switch (estado) {
+        //CREO QUE EL CERO Y EL UNO SE PUEDEN UNIR EN UNO YA QUE SABEMOS A DONDE VOLVER YA QUE DEPENDE DE DONDE SE HAYA LLAMADO EL SUBAUTOMATA
 
         case 0:
-            bufferAux[indice++]=c;
-            //caso para el binario
-            while((c=siguienteCaracter())=='0' ||c=='1'||c=='_'){
-
-                if(c=='_' && (siguienteCaracter())=='_'){
-                    //No puede haber dos barra bajas juntas, por lo que salimos del if y retrocedemos para volver a la primera barra baja
-                    retrocederCaracter();
-                    break;
-                }
-
+            //llegamos siempre con un punto (Caso para aceptar numeros del tipo .2)
+            c=siguienteCaracter();
+            bufferAux[*indice++]=c;
+            if(isdigit(c)){
+                estadoCorrespondiente=2;
+            }else{
+                retrocederLexema(bufferAux,1,indice);
+                break;
             }
-            //Salimos del switch
-            break;
-
-
 
         case 1:
-            //Caso de números octales
-            //Solo se aceptan los dígitos del 0 al 7 y las barra bajas
-            while((c=siguienteCaracter())>='0' && c<='7' || c=='_'){
-
-                if(c=='_' && (siguienteCaracter())=='_'){
-                    //No puede haber dos barra bajas juntas, por lo que salimos del if y retrocedemos para volver a la primera barra baja
-                    retrocederCaracter();
-                    break;
-                }
-
+            //llegamos siempre con un punto (Caso para aceptar números del tipo 35.2)
+            c=siguienteCaracter();
+            bufferAux[*indice++]=c;
+            if(isdigit(c)){
+                estadoCorrespondiente=2;
+            }else{
+                retrocederLexema(bufferAux,1,indice);
+                break;
             }
-
-            break;
-
 
         case 2:
-            //Caso de números hexadecimales
-
-            //Los caracteres aceptados son 0-9, a-z, A-Z
-            while(isxdigit(c=siguienteCaracter())){
-
-                //ARREGLAR LOS IFS QUE ESTAN ASIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
-
-                if(c=='_' && (siguienteCaracter())=='_'){
-                    //No puede haber dos barra bajas juntas, por lo que salimos del if y retrocedemos para volver a la primera barra baja
-                    retrocederCaracter();
-                    break;
-                }
+            //Mientras lleguen números aceptamos
+            while(isdigit(c=siguienteCaracter())){
+                bufferAux[*indice++]=c;
             }
+
+            if(c=='_'){
+                bufferAux[*indice++]=c;
+                estadoCorrespondiente=3;
+            }else{
+                retrocederLexema(bufferAux,1,indice);
+                break;
+            }
+
+        case 3:
+
+            c=siguienteCaracter();
+            bufferAux[*indice++]=c;
+            if(isdigit(c)){
+                estadoCorrespondiente=2;
+            } else{
+                //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
+                retrocederLexema(bufferAux,2,indice);
+                break;//Salimos del switch
+            }
+
+        //Los casos de aqui en adelante son para números con exponentes
+        case 4:
             break;
 
+        case 5:
+            break;
+        
     }
-
-    if (c != EOF && c!=' ') { //En el caso de que sea un espacio o fin de fila lo que vamos hacer es no procesarlo
-        retrocederCaracter(); // El último carácter leído no forma parte del token
-    }
-
-    bufferAux[indice]='\0';
-
-} //ARREGLARRRR
-
-
-void automataFlotantes(char c, char *bufferAux,int *indice,int *capacidad){
-
 }
 
-void automataExponentes(char c, char *bufferAux,int *indice,int *capacidad){
 
+
+void retrocederLexema(char *lexema, int retroceso,int *indice) {
+    lexema[strlen(lexema) - retroceso] = '\0'; // Ajustar el fin de la cadena directamente.
+    for (int i = 0; i < retroceso; i++) {
+        retrocederCaracter();
+    }
+    *indice-=retroceso;
 }
 
 
