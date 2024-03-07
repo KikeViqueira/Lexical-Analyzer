@@ -4,10 +4,11 @@
 #include "definiciones.h"
 #include "sistemaEntrada.h"
 
+//Funciones
+void cargarBloque(int longitudFichero);
+
 FILE *codigoFuente;
-char *buffer;     // Buffer que almacena el código fuente sin comentarios de texto
-int indice = 0;   // Índice actual en el buffer
-int longitud = 0; // Longitud total del buffer
+SistemaDobleCentinela dobleCentinela;
 
 // Funcion que inicializa el sistema de entrada y lee el archivo que se le ha pasado
 void initEntrada(char *archivo) {
@@ -18,43 +19,43 @@ void initEntrada(char *archivo) {
     }
 
     // Nos movemos al final del archivo para saber su tamaño
-    fseek(codigoFuente, 0, SEEK_END);
-    longitud = ftell(codigoFuente);
-    // Volvemos al inicio del fichero para comenzar el proceso de lectura
-    fseek(codigoFuente, 0, SEEK_SET);
+    dobleCentinela.bufferA[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cauando tenemos que cambiar de bloque
 
-    // Asignamos la memoria para el buffer basandonos en el tamaño del fichero leído
-    buffer = (char *)malloc(longitud + 1); //+1 para el caracter nulo
-    if (buffer == NULL) {
-        perror("Error al asignar memoria para el buffer");
-        fclose(codigoFuente);
-        exit(EXIT_FAILURE);
-    }
+    cargarBloque(TAM_BLOQUE);
 
+
+}
+
+void cargarBloque(int longitudFichero){
     // Leemos el archivo y lo almacenamos en el buffer
-    fread(buffer, sizeof(char), longitud, codigoFuente);
-    buffer[longitud] = '\0'; // Añadimos el caracter nulo al final del buffer
+    fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-2, codigoFuente);
 
-    printf("Código fuente leído:\n%s\n", buffer);
+    printf("Código fuente leído:\n%s\n", dobleCentinela.bufferA);
 
-    // Cerramos el archivo
-    fclose(codigoFuente);
+    //Hacemos que los punteros apunten al inicio del buffer
+    dobleCentinela.inicio = dobleCentinela.bufferA;
+    dobleCentinela.delantero = dobleCentinela.bufferA;
+
 }
 
 char siguienteCaracter() {
-    if (indice < longitud) {
-        return buffer[indice++];
-    } else {
-        return EOF; // Fin de archivo
-    }
+
+    char c = *dobleCentinela.delantero; //Cogemos valor de la direccion de memoria
+    dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1
+    printf("%c\n",c);
+    return c;
+
 }
 
 void retrocederCaracter() {
-    indice--;
+
+    dobleCentinela.delantero--;
+    dobleCentinela.inicio = dobleCentinela.delantero; //Igualamso las direcciones de memoria
+
 }
 
 void omitirCaracter(){
-    indice++;
+
 }
 
 

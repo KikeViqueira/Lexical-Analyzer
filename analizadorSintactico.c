@@ -20,5 +20,4 @@ void startAnalizadorSintactico(char *archivo) {
         printf("<%d, %s>\n",componente_lexico.numToken,componente_lexico.lexema);
         componente_lexico=siguienteToken();
     }
-
 }

@@ -2,6 +2,7 @@
 #include "abb.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "sistemaEntrada.h"
 
 #include "TS.h"
 
@@ -19,8 +20,20 @@ int main(int argc, char **argv) {
     // Inicializamos la tabla de símbolos
     initTS();
 
+    //llamamos al sistema de entrada
+    initEntrada(argv[1]);
+
+
+    siguienteCaracter();
+    siguienteCaracter();
+    siguienteCaracter();
+    siguienteCaracter();
+    siguienteCaracter();
+    siguienteCaracter();
+
+
     // Llamamos al analizador sintáctico
-    startAnalizadorSintactico(argv[1]);
+    //startAnalizadorSintactico(argv[1]);
 
     //Una vez acaba el analizador sintáctico se le devuelve el control del programa al main que liberará la memoria y recursos
     //Utilizados antes de finalizar la ejecución
