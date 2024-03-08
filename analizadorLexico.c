@@ -35,16 +35,17 @@ token siguienteToken() {
         switch (estado) {
             case 0://esatado inicial
                 if(isalpha(c) || c=='_'){
-                    automataAlphaNumerico(c,&componente);
-                    estado=0;
+                    estado=1;
                 }
                 else if(isdigit(c) || c=='.'){//Si es número o . llamamos al autómata numérico
-                    automataNumerico(c, &componente);
-                    estado=0;
+                    estado=2;
                 }
-
-
-
+            case 1:
+                automataAlphaNumerico(c,&componente);
+                break;
+            case 2:
+                automataNumerico(c, &componente);
+                break;
 
         }
 
@@ -97,6 +98,7 @@ void automataNumerico(char c, token *componente){
             }else if(c=='.'){//Este if es para aceptar números del estilo de .0001
                 bufferAux[indice++]=c;
                 automataFlotantes(c,bufferAux,&indice,&capacidad,0);
+                break;
             }else{
                 break;
             }
@@ -112,10 +114,13 @@ void automataNumerico(char c, token *componente){
             }else if (c=='o' || c=='O'){
                 estado=8;
             }else if(c=='j'||c=='J'){
-                estado=13;
+                break;
             }else if(isdigit(c)){
                 estado=11;
             }
+            else if(c=='.'){
+                automataFlotantes(c,bufferAux,&indice,&capacidad,1);
+                break;            }
             else{
                 retrocederLexema(bufferAux,1,&indice);
                 break;
@@ -241,7 +246,15 @@ void automataNumerico(char c, token *componente){
             if(c=='_'){
                 bufferAux[indice++]=1;
                 estado=12;
-            }else{
+            }
+            else if(c=='.'){
+                automataFlotantes(c,bufferAux,&indice,&capacidad,1);
+                break;
+            }
+            else if(c=='j' || c=='J'){
+                break;//Los números imaginarios obligatoriamente terminan por J
+            }
+            else{
                 //Se ha aceptado el lexama, retrocedemos una posicion
                 retrocederLexema(bufferAux,1,&indice);
                 break;
@@ -284,7 +297,11 @@ void automataFlotantes(char c, char *bufferAux,int *indice,int *capacidad, int e
             bufferAux[*indice++]=c;
             if(isdigit(c)){
                 estadoCorrespondiente=2;
-            }else{
+            }
+            else if(c=='j' || c=='J'){
+                break;//Los números imaginarios obligatoriamente terminan por J
+            }
+            else{
                 retrocederLexema(bufferAux,1,indice);
                 break;
             }
@@ -295,7 +312,11 @@ void automataFlotantes(char c, char *bufferAux,int *indice,int *capacidad, int e
             bufferAux[*indice++]=c;
             if(isdigit(c)){
                 estadoCorrespondiente=2;
-            }else{
+            }
+            else if(c=='j' || c=='J'){
+                break;//Los números imaginarios obligatoriamente terminan por J
+            }
+            else{
                 retrocederLexema(bufferAux,1,indice);
                 break;
             }
@@ -309,7 +330,16 @@ void automataFlotantes(char c, char *bufferAux,int *indice,int *capacidad, int e
             if(c=='_'){
                 bufferAux[*indice++]=c;
                 estadoCorrespondiente=3;
-            }else{
+            }
+            else if(c=='j' || c=='J'){
+                bufferAux[*indice++]=c;
+                break;//Los números imaginarios obligatoriamente terminan por J
+            }
+            else if(c=='e' || c=='E'){
+                bufferAux[*indice++]=c;
+                estadoCorrespondiente=4;
+            }
+            else{
                 retrocederLexema(bufferAux,1,indice);
                 break;
             }
@@ -320,7 +350,8 @@ void automataFlotantes(char c, char *bufferAux,int *indice,int *capacidad, int e
             bufferAux[*indice++]=c;
             if(isdigit(c)){
                 estadoCorrespondiente=2;
-            } else{
+            }
+            else{
                 //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
                 retrocederLexema(bufferAux,2,indice);
                 break;//Salimos del switch
@@ -328,11 +359,31 @@ void automataFlotantes(char c, char *bufferAux,int *indice,int *capacidad, int e
 
         //Los casos de aqui en adelante son para números con exponentes
         case 4:
-            break;
+            c=siguienteCaracter();
+            bufferAux[*indice++]=c;
+            if(isdigit(c)){
+                estadoCorrespondiente=2;
+            }
+            else if(c=='-' || c=='+'){
+                estadoCorrespondiente=5;
+            }
+            else{
+                retrocederLexema(bufferAux,2,indice);//retrocedemos el caracter actual y el E anterior
+                break;
+            }
 
         case 5:
-            break;
-        
+            //Caso por si después del E se recibe un - o +
+            c=siguienteCaracter();
+            bufferAux[*indice++]=c;
+            if(isdigit(c)){
+                estadoCorrespondiente=2;
+            }
+            else{
+                retrocederLexema(bufferAux,3,indice);//retrocedemos el caracter actual, el + o - y el E
+                break;
+            }
+
     }
 }
 
