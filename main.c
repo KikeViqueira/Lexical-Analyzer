@@ -1,5 +1,4 @@
 #include "analizadorSintactico.h"
-#include "abb.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "sistemaEntrada.h"
@@ -23,17 +22,8 @@ int main(int argc, char **argv) {
     //llamamos al sistema de entrada
     initEntrada(argv[1]);
 
-
-    siguienteCaracter();
-    siguienteCaracter();
-    siguienteCaracter();
-    siguienteCaracter();
-    siguienteCaracter();
-    siguienteCaracter();
-
-
     // Llamamos al analizador sintáctico
-    //startAnalizadorSintactico(argv[1]);
+    startAnalizadorSintactico();
 
     //Una vez acaba el analizador sintáctico se le devuelve el control del programa al main que liberará la memoria y recursos
     //Utilizados antes de finalizar la ejecución

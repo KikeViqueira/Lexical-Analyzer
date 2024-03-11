@@ -8,7 +8,7 @@ typedef struct {
 } token;
 
 // Función para inicializar el analizador léxico
-void initLexico(char *archivo);
+//void initLexico(char *archivo);
 
 // Función para obtener el siguiente token y pasarselo al analizador sintáctico
 token siguienteToken();

@@ -42,4 +42,9 @@
 //Valor parapalabras que no se han encontrado en la tabla
 #define ID 309
 
+//Tipo de número reconocido por el analizador léxico
+#define ENTERO 310
+#define FLOTANTE 311
+#define IMAGINARIO 312
+
 #endif

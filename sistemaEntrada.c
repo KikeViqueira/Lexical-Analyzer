@@ -55,7 +55,7 @@ void retrocederCaracter() {
 }
 
 void omitirCaracter(){
-
+    dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1
 }
 
 
