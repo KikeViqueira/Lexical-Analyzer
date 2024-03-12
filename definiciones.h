@@ -47,4 +47,35 @@
 #define FLOTANTE 311
 #define IMAGINARIO 312
 
+//Operadores compuestos
+#define POTENCIA 313
+#define DIVISION_ENTERA 314
+#define DESPLAZA_IZQUIERDA 315
+#define DESPLAZA_DERECHA 316
+#define DOS_PUNTOS_IGUAL 317
+#define MENOR_IGUAL 318
+#define MAYOR_IGUAL 319
+#define IGUAL_IGUAL 320
+#define EXCLAMACION_IGUAL 321
+
+//Delimitadores compuestos
+#define FLECHA 322
+#define MAS_IGUAL 323
+#define MENOS_IGUAL 324
+#define POR_IGUAL 325
+#define DIVIDIDO_IGUAL 326
+#define DIVISION_ENTERA_IGUAL 327
+#define MODULO_IGUAL 328
+#define ARROBA_IGUAL 329
+#define AND_IGUAL 330
+#define OR_IGUAL 331
+#define XOR_BIT_IGUAL 332
+#define DESPLAZA_DERECHA_IGUAL 333
+#define DESPLAZA_IZQUIERDA_IGUAL 334
+#define POTENCIA_IGUAL 335
+
+//Comentarios
+#define LINEA 336
+
+
 #endif
