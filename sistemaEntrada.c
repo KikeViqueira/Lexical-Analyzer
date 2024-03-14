@@ -2,12 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "definiciones.h"
 #include "sistemaEntrada.h"
 
 
 //Funciones
-void cargarBloque(int bloque);
+void cargarBloque();
 
 FILE *codigoFuente;
 SistemaDobleCentinela dobleCentinela;
@@ -22,65 +21,61 @@ void initEntrada(char *archivo) {
     }
 
     //Al inicializar el sistema de entrada, caragamos el bloque A por convenio
-    cargarBloque(1);
+    fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-1, codigoFuente);
+
+    printf("Código fuente leído por el bloque A:\n%s\n", dobleCentinela.bufferA);
+
+    //Hacemos que los punteros apunten al inicio del buffer
+    dobleCentinela.inicio = dobleCentinela.bufferA;
+    dobleCentinela.delantero = dobleCentinela.bufferA;
+    dobleCentinela.bufferA[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
+    //Ponemos la bandera del siguiente bloque que se cargará
+    dobleCentinela.bloque_cargar=1;
 
 }
 
 //Función que inicializa el bloque correspondiente que se le pasa por comandos, guardando en su correspondiente buffer el tamaño indicado del fichero de entrada
-void cargarBloque(int bloque){
-    if (bloque==1){
-        // Leemos el archivo y lo almacenamos en el buffer A, que es el primer bloque. En caso de que en el buffer ya hubiese contenido este se sobreescribe
-        fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-2, codigoFuente);
+void cargarBloque(){
 
-        printf("Código fuente leído por el bloque A:\n%s\n", dobleCentinela.bufferA);
+    //Comprobamos si tenemos que cambiar de bloque porque el puntero delantero ya ha procesado el último caracter del buffer en el que está, este tiene que estar apuntando a la última posición de uno de los buffers
+    if ((dobleCentinela.delantero == dobleCentinela.bufferA + TAM_BLOQUE -1) || (dobleCentinela.delantero == dobleCentinela.bufferB + TAM_BLOQUE -1)){
+        //Miramos el valor del bloque que tenemos que cargar
+        if(dobleCentinela.bloque_cargar==0){
+            // Leemos el archivo y lo almacenamos en el buffer A. En caso de que en el buffer ya hubiese contenido este se sobreescribe
+            fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-1, codigoFuente);
 
-        //Hacemos que los punteros apunten al inicio del buffer
-        dobleCentinela.inicio = dobleCentinela.bufferA;
-        dobleCentinela.delantero = dobleCentinela.bufferA;
-        dobleCentinela.bufferA[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
+            printf("Código fuente leído por el bloque A:\n%s\n", dobleCentinela.bufferA);
 
-    }else if (bloque == 2){
-        // Leemos el archivo y lo almacenamos en el buffer B, que es el segundo bloque
-        fread(dobleCentinela.bufferB, sizeof(char), TAM_BLOQUE-2, codigoFuente);
+            //Hacemos que el puntero delantero apunte al inicio del buffer
+            dobleCentinela.delantero = dobleCentinela.bufferA;
+            dobleCentinela.bufferA[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
+            dobleCentinela.bloque_cargar=1;
+        }
+        else{
+            // Leemos el archivo y lo almacenamos en el buffer B, que es el segundo bloque
+            fread(dobleCentinela.bufferB, sizeof(char), TAM_BLOQUE-1, codigoFuente);
 
-        printf("Código fuente leído por el bloque B:\n%s\n", dobleCentinela.bufferB);
+            printf("Código fuente leído por el bloque B:\n%s\n", dobleCentinela.bufferB);
 
-        //Hacemos que los punteros apunten al inicio del buffer
-        dobleCentinela.inicio = dobleCentinela.bufferB;
-        dobleCentinela.delantero = dobleCentinela.bufferB;
-        dobleCentinela.bufferB[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
+            //Hacemos que el puntero delantero apunte al inicio del buffer
+            dobleCentinela.delantero = dobleCentinela.bufferB;
+            dobleCentinela.bufferB[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
+            dobleCentinela.bloque_cargar=0;
+        }
 
-
-    }else{
-        printf("Número de bloque ( %d ) incorrecto\n",bloque);
     }
-
-
 }
 
 //Función que le manda el siguiente caracter al analizador léxico
 char siguienteCaracter() {
 
     char c;
-    //Miramos si el puntero delantero apunta a un EOF
-    if(*dobleCentinela.delantero == EOF){
-        if (dobleCentinela.delantero==dobleCentinela.bufferA+TAM_BLOQUE-1){
-            //Apunta al EOF del primer bloque (Buffer A), hacemos que apunte al inicio del segundo bloque
-            dobleCentinela.delantero=dobleCentinela.bufferB;
 
-        }else if(dobleCentinela.delantero==dobleCentinela.bufferB+TAM_BLOQUE-1){
-            //Apunta al EOF del segundo bloque (buffer B), hacemos que apunte al inicio del primer bloque
-            dobleCentinela.delantero=dobleCentinela.bufferA;
-
-        }else{
-            //Fin de fichero
-            printf("Estamos en el final del fichero\n");
-        }
-    }
     //Guardamos el valor del puntero delantero sin riesgo de que apunte a un EOF
     c=*dobleCentinela.delantero;
-
     dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1
+    cargarBloque();
+
     return c;
 }
 

@@ -26,5 +26,8 @@ int main(int argc, char **argv) {
     startAnalizadorSintactico();
 
     //Una vez acaba el analizador sintáctico se le devuelve el control del programa al main que liberará la memoria y recursos
+
+    //Imprimir otra vez tabla de simbolos, para ver como ha cambiado
+
     //Utilizados antes de finalizar la ejecución
 }

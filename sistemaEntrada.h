@@ -13,6 +13,7 @@ typedef struct {
     char bufferB[TAM_BLOQUE];
     char *inicio;//Puntero que marca el inicio del lexema
     char *delantero;//Puntero que marca el caracter actual del lexema
+    int bloque_cargar;//Flag que nos indicará que bloque cargaremos cuando delantero salga de el buffer en el que estamos (0->BufferA, 1->BufferB)
 }SistemaDobleCentinela;
 
 
