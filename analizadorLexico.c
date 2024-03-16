@@ -9,13 +9,13 @@
 
 // Autómatas
 void automataAlphaNumerico( char c,token *componente);
-void automataNumerico(char *c, token *componente);
-void automataFlotantes(char *c,int estadoCorrespondiente, token *componente);
+void automataNumerico(char c, token *componente);
+void automataFlotantes(char c,int estadoCorrespondiente, token *componente);
 void automataOperadores(char c, token *componente);
 void automataComentariosLinea(char c, token *componente);
 
 token* siguienteToken() {
-    token *componente;
+    token *componente = (token*) malloc(sizeof(token));
     componente->lexema=NULL;
     componente->numToken=-1;
     int indice =0;
@@ -35,7 +35,8 @@ token* siguienteToken() {
                 }else if(c=='\n'){
                     estado=3;
                 }else if(c==' '){
-                    //Si es un espacio en blanco no lo procesamos
+                    //Si es un espacio en blanco no lo procesamos, y pasamos a analizar el siguiente caracter
+                    omitirCaracter();
                     c=siguienteCaracter();
                     break;
                 }else if(c=='#'){
@@ -58,7 +59,7 @@ token* siguienteToken() {
                 break;
 
             case 2:
-                automataNumerico(&c,componente);
+                automataNumerico(c,componente);
                 if(c=='.'){//Si se ejecuta este if, estamos en el caso de un punto a secas como lexema
                     aceptar(componente);
                     componente->numToken=(int)c;
@@ -67,7 +68,7 @@ token* siguienteToken() {
 
                 break;
             case 3:
-                componente->lexema =(char*)malloc(sizeof (char)*70);
+                componente->lexema =(char*)malloc(sizeof (char)*3);
                 componente->lexema[indice++]='\\';
                 componente->lexema[indice++]='n';
                 componente->lexema[indice]='\0';
@@ -113,7 +114,7 @@ void automataAlphaNumerico(char c, token *componente) {
 }
 
 //Autómata que acepta los distintos tipos de números enteros
-void automataNumerico(char *c, token *componente){
+void automataNumerico(char c, token *componente){
     //El caracter que recibe este autómata es un número o un punto
     int aceptadoNumeros=0;
     int estado = 0;
@@ -122,11 +123,11 @@ void automataNumerico(char *c, token *componente){
         switch (estado) {
             case 0:
                 //Miramos si teenemos que ir al automáta
-                if(*c=='0'){
+                if(c=='0'){
                     estado=1;
-                }else if(isdigit(*c)){//Se supone ya que no es cero por la primera comprobracion
+                }else if(isdigit(c)){//Se supone ya que no es cero por la primera comprobracion
                     estado=11;
-                }else if(*c=='.'){//Este if es para aceptar números del estilo de .0001
+                }else if(c=='.'){//Este if es para aceptar números del estilo de .0001
                     automataFlotantes(c,0, componente);
                     aceptadoNumeros=1;
                     break;
@@ -137,27 +138,27 @@ void automataNumerico(char *c, token *componente){
 
             case 1:
                 //automata de codificaciones (binario, hexadecimal y octal)
-                *c=siguienteCaracter();
-                if(*c=='b' || *c=='B'){
+                c=siguienteCaracter();
+                if(c=='b' || c=='B'){
                     estado=2;
-                }else if (*c=='x' || *c=='X'){
+                }else if (c=='x' || c=='X'){
                     estado=8;
-                }else if (*c=='o' || *c=='O'){
+                }else if (c=='o' || c=='O'){
                     estado=5;
-                }else if(*c=='e' || *c=='E') {
+                }else if(c=='e' || c=='E') {
                     //Nos vamos al autómata de flotantes al caso en concreto que maneja los posibles números con exponentes
                     automataFlotantes(c,  4, componente);
                     aceptadoNumeros = 1;
                     break;
                 }
-                else if(*c=='j'||*c=='J'){
+                else if(c=='j'||c=='J'){
                     aceptadoNumeros=1;
                     componente->numToken=IMAGINARIO;
                     break;
-                }else if(isdigit(*c)){
+                }else if(isdigit(c)){
                     estado=11;
                 }
-                else if(*c=='.'){
+                else if(c=='.'){
                     automataFlotantes(c,1,componente);
                     aceptadoNumeros=1;
                     break;
@@ -174,9 +175,9 @@ void automataNumerico(char *c, token *componente){
                 //Del case 2 al 4 estamos en la posibilidad de números binarios
             case 2:
                 //Estamos en el caso de los binarios
-                *c=siguienteCaracter();
+                c=siguienteCaracter();
 
-                if(*c=='0'||*c=='1'){
+                if(c=='0'||c=='1'){
                     estado=3;
                 }else{
                     //En caso de que después de la b se reciba un caracter distinto a un punto tenemos que retroceder tres posiciones para que el puntero apunte al cero inicial
@@ -189,12 +190,12 @@ void automataNumerico(char *c, token *componente){
                 break;
 
             case 3:
-                *c=siguienteCaracter();
+                c=siguienteCaracter();
 
-                while(*c=='0' || *c=='1'){
-                    *c=siguienteCaracter();
+                while(c=='0' || c=='1'){
+                    c=siguienteCaracter();
                 }
-                if(*c=='_'){
+                if(c=='_'){
                     estado=4;
                 }else{
                     //Se ha aceptado el lexama, retrocedemos una posicion
@@ -207,8 +208,8 @@ void automataNumerico(char *c, token *componente){
                 break;
 
             case 4:
-                *c=siguienteCaracter();
-                if(*c=='0' || *c=='1'){
+                c=siguienteCaracter();
+                if(c=='0' || c=='1'){
                     estado=3;
                 }else{
                     //Si recibimos otro caracter cualquiera que no sea un número, tenemos que retroceder 3 posiciones para que el puntero apunte al último número y aceptamos el lexema
@@ -223,9 +224,9 @@ void automataNumerico(char *c, token *componente){
                 //Del case 5 al 7 estamos en la posibilidad de números octales
             case 5:
                 //Estamos en el caso de los binarios
-                *c=siguienteCaracter();
+                c=siguienteCaracter();
 
-                if(*c>='0' && *c<='7' ){
+                if(c>='0' && c<='7' ){
                     estado=6;
                 }else{
                     retrocederCaracter();
@@ -237,11 +238,11 @@ void automataNumerico(char *c, token *componente){
                 break;
 
             case 6:
-                *c=siguienteCaracter();
-                while(*c>='0' && *c<='7'){
-                    *c=siguienteCaracter();
+                c=siguienteCaracter();
+                while(c>='0' && c<='7'){
+                    c=siguienteCaracter();
                 }
-                if(*c=='_'){
+                if(c=='_'){
                     estado=7;
                 }else{
                     //Se ha aceptado el lexama, retrocedemos una posicion
@@ -254,8 +255,8 @@ void automataNumerico(char *c, token *componente){
                 break;
 
             case 7:
-                *c=siguienteCaracter();
-                if(*c>='0' && *c<='7'){
+                c=siguienteCaracter();
+                if(c>='0' && c<='7'){
                     estado=6;
                 }else{
                     //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
@@ -270,9 +271,9 @@ void automataNumerico(char *c, token *componente){
                 //Del case 8 al 10 estamos en la posibilidad de números hexadecimales
             case 8:
                 //Estamos en el caso de los binarios
-                *c=siguienteCaracter();
+                c=siguienteCaracter();
 
-                if(isxdigit(*c)){
+                if(isxdigit(c)){
                     estado=9;
                 }else{
                     retrocederCaracter();
@@ -284,11 +285,11 @@ void automataNumerico(char *c, token *componente){
                 break;
 
             case 9:
-                *c=siguienteCaracter();
-                while(isxdigit(*c)){
-                    *c=siguienteCaracter();
+                c=siguienteCaracter();
+                while(isxdigit(c)){
+                    c=siguienteCaracter();
                 }
-                if(*c=='_'){
+                if(c=='_'){
                     estado=10;
                 }else{
                     //Se ha aceptado el lexama, retrocedemos una posicion
@@ -301,8 +302,8 @@ void automataNumerico(char *c, token *componente){
                 break;
 
             case 10:
-                *c=siguienteCaracter();
-                if(isxdigit(*c)){
+                c=siguienteCaracter();
+                if(isxdigit(c)){
                     estado=9;
                 }else{
                     //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
@@ -316,24 +317,24 @@ void automataNumerico(char *c, token *componente){
 
 
             case 11:
-                *c=siguienteCaracter();
-                while(isdigit(*c)){
-                    *c=siguienteCaracter();
+                c=siguienteCaracter();
+                while(isdigit(c)){
+                    c=siguienteCaracter();
                 }
 
-                if(*c=='_'){
+                if(c=='_'){
                     estado=12;
                 }
-                else if(*c=='.'){
+                else if(c=='.'){
                     automataFlotantes(c,1,componente);
                     aceptadoNumeros=1;
                     break;
                 }
-                else if(*c=='j' || *c=='J'){
+                else if(c=='j' || c=='J'){
                     aceptadoNumeros=1;
                     componente->numToken=IMAGINARIO;
                     break;//Los números imaginarios obligatoriamente terminan por J
-                }else if(*c=='e' || *c=='E'){
+                }else if(c=='e' || c=='E'){
                     //Nos vamos al autómata de flotantes al caso en concreto que maneja los posibles números con exponentes
                     automataFlotantes(c,4,componente);
                     aceptadoNumeros=1;
@@ -350,8 +351,8 @@ void automataNumerico(char *c, token *componente){
                 break;
 
             case 12:
-                *c=siguienteCaracter();
-                if(isdigit(*c)){
+                c=siguienteCaracter();
+                if(isdigit(c)){
                     estado=11;
                 }else{
                     //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
@@ -369,7 +370,7 @@ void automataNumerico(char *c, token *componente){
 }
 
 //Autómata que acepta los distintos tipos de números flotantes
-void automataFlotantes(char *c,int estadoCorrespondiente, token *componente){
+void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
 
     /*MUY IMPORTANTE: *indice++: Obtén el valor apuntado por indice, luego incrementa el puntero indice en sí (para que apunte a la siguiente dirección de memoria).
      (*indice)++: Incrementa el valor al que indice apunta, sin cambiar la dirección que almacena el puntero indice.
@@ -385,11 +386,11 @@ void automataFlotantes(char *c,int estadoCorrespondiente, token *componente){
 
             case 0:
                 //llegamos siempre con un punto (Caso para aceptar numeros del tipo .2)
-                *c=siguienteCaracter();
-                if(isdigit(*c)){
+                c=siguienteCaracter();
+                if(isdigit(c)){
                     estadoCorrespondiente=2;
                 }
-                else if(*c=='j' || *c=='J'){
+                else if(c=='j' || c=='J'){
                     aceptadoFlotante=1;
                     componente->numToken=IMAGINARIO;
                     break;//Los números imaginarios obligatoriamente terminan por J
@@ -404,11 +405,11 @@ void automataFlotantes(char *c,int estadoCorrespondiente, token *componente){
 
             case 1:
                 //llegamos siempre con un punto (Caso para aceptar números del tipo 35.2)
-                *c=siguienteCaracter();
-                if(isdigit(*c)){
+                c=siguienteCaracter();
+                if(isdigit(c)){
                     estadoCorrespondiente=2;
                 }
-                else if(*c=='j' || *c=='J'){
+                else if(c=='j' || c=='J'){
                     aceptadoFlotante=1;
                     componente->numToken=IMAGINARIO;
                     break;//Los números imaginarios obligatoriamente terminan por J
@@ -423,21 +424,21 @@ void automataFlotantes(char *c,int estadoCorrespondiente, token *componente){
                 break;
 
             case 2:
-                *c=siguienteCaracter();
+                c=siguienteCaracter();
                 //Mientras lleguen números aceptamos
-                while(isdigit(*c)){
-                    *c=siguienteCaracter();
+                while(isdigit(c)){
+                    c=siguienteCaracter();
                 }
 
-                if(*c=='_'){
+                if(c=='_'){
                     estadoCorrespondiente=3;
                 }
-                else if(*c=='j' || *c=='J'){
+                else if(c=='j' || c=='J'){
                     aceptadoFlotante=1;
                     componente->numToken=IMAGINARIO;
                     break;//Los números imaginarios obligatoriamente terminan por J
                 }
-                else if(*c=='e' || *c=='E'){
+                else if(c=='e' || c=='E'){
                     estadoCorrespondiente=4;
                 }
                 else{
@@ -451,8 +452,8 @@ void automataFlotantes(char *c,int estadoCorrespondiente, token *componente){
 
             case 3:
 
-                *c=siguienteCaracter();
-                if(isdigit(*c)){
+                c=siguienteCaracter();
+                if(isdigit(c)){
                     estadoCorrespondiente=2;
                 }
                 else{
@@ -467,11 +468,11 @@ void automataFlotantes(char *c,int estadoCorrespondiente, token *componente){
 
                 //Los casos de aqui en adelante son para números con exponentes
             case 4:
-                *c=siguienteCaracter();
-                if(isdigit(*c)){
+                c=siguienteCaracter();
+                if(isdigit(c)){
                     estadoCorrespondiente=2;
                 }
-                else if(*c=='-' || *c=='+'){
+                else if(c=='-' || c=='+'){
                     estadoCorrespondiente=5;
                 }
                 else{
@@ -485,8 +486,8 @@ void automataFlotantes(char *c,int estadoCorrespondiente, token *componente){
 
             case 5:
                 //Caso por si después del E se recibe un - o +
-                *c=siguienteCaracter();
-                if(isdigit(*c)){
+                c=siguienteCaracter();
+                if(isdigit(c)){
                     estadoCorrespondiente=2;
                 }
                 else{

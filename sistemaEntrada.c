@@ -23,7 +23,7 @@ void initEntrada(char *archivo) {
     //Al inicializar el sistema de entrada, caragamos el bloque A por convenio
     fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-1, codigoFuente);
 
-    printf("Código fuente leído por el bloque A:\n%s\n", dobleCentinela.bufferA);
+    printf("Código fuente leído por el bloque A: %s\n", dobleCentinela.bufferA);
 
     //Hacemos que los punteros apunten al inicio del buffer
     dobleCentinela.inicio = dobleCentinela.bufferA;
@@ -44,7 +44,7 @@ void cargarBloque(){
             // Leemos el archivo y lo almacenamos en el buffer A. En caso de que en el buffer ya hubiese contenido este se sobreescribe
             fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-1, codigoFuente);
 
-            printf("Código fuente leído por el bloque A:\n%s\n", dobleCentinela.bufferA);
+            printf("Código fuente leído por el bloque A: %s\n", dobleCentinela.bufferA);
 
             //Hacemos que el puntero delantero apunte al inicio del buffer
             dobleCentinela.delantero = dobleCentinela.bufferA;
@@ -55,7 +55,7 @@ void cargarBloque(){
             // Leemos el archivo y lo almacenamos en el buffer B, que es el segundo bloque
             fread(dobleCentinela.bufferB, sizeof(char), TAM_BLOQUE-1, codigoFuente);
 
-            printf("Código fuente leído por el bloque B:\n%s\n", dobleCentinela.bufferB);
+            printf("Código fuente leído por el bloque B: %s\n", dobleCentinela.bufferB);
 
             //Hacemos que el puntero delantero apunte al inicio del buffer
             dobleCentinela.delantero = dobleCentinela.bufferB;
@@ -68,9 +68,7 @@ void cargarBloque(){
 
 //Función que le manda el siguiente caracter al analizador léxico
 char siguienteCaracter() {
-
     char c;
-
     //Guardamos el valor del puntero delantero sin riesgo de que apunte a un EOF
     c=*dobleCentinela.delantero;
     dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1
@@ -95,6 +93,7 @@ void aceptar(token *componente){
              Para saber los elementos que tiene el lexema que se ha aceptado lo que haremos es restar la posición del puntero delantero menos la del inicio
              Esto nos devuelve la cantidad de elementos desde la posición del puntero inicio (incluída) hasta la del delantero (no inluída), cuando ambos punteros están en una zona de memoria común**/
             size_t longitudLexema= dobleCentinela.delantero - dobleCentinela.inicio;
+            printf("Tamanho del lexema aceptado: %zu\n",longitudLexema);
             componente->lexema=(char*)malloc(sizeof (char)*(longitudLexema+1)); //Tenemos que reservar un sitio más para el caracter nulo
 
             //copiamos la zona del buffer A al componente.lexema
@@ -105,7 +104,7 @@ void aceptar(token *componente){
         }
         else{
             //Puntero delantero está en el bloque B
-            size_t longitudA = (dobleCentinela.bufferA+TAM_BLOQUE) - dobleCentinela.inicio; //Devuelve los elementos desde el inicio incluído al EOF excluído
+            size_t longitudA = (dobleCentinela.bufferA+TAM_BLOQUE-1) - dobleCentinela.inicio; //Devuelve los elementos desde el inicio incluído al EOF excluído
             size_t longitudB = (dobleCentinela.delantero - dobleCentinela.bufferB); //Devuelve los elementos desde el inicio del bloque B hasta la pos anterior al puntero delantero
             size_t longitudTotal = longitudA + longitudB;
             if(longitudTotal>TAM_BLOQUE-1){
@@ -136,7 +135,7 @@ void aceptar(token *componente){
         }
         else{
             //Puntero delantero está en el bloque A
-            size_t longitudB = (dobleCentinela.bufferB+TAM_BLOQUE) - dobleCentinela.inicio;
+            size_t longitudB = (dobleCentinela.bufferB+TAM_BLOQUE-1) - dobleCentinela.inicio;
             size_t longitudA = (dobleCentinela.delantero - dobleCentinela.bufferA);
             size_t longitudTotal = longitudA + longitudB;
             if(longitudTotal>TAM_BLOQUE-1){
@@ -159,7 +158,8 @@ void aceptar(token *componente){
 }
 
 void omitirCaracter(){
-    dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1
+    //Aumentamos la direccion de memoria en el puntero inicio, para comezan a procesar el siguiente caracter
+    dobleCentinela.inicio++;
 }
 
 
