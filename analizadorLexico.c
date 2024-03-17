@@ -68,10 +68,7 @@ token* siguienteToken() {
 
                 break;
             case 3:
-                componente->lexema =(char*)malloc(sizeof (char)*3);
-                componente->lexema[indice++]='\\';
-                componente->lexema[indice++]='n';
-                componente->lexema[indice]='\0';
+                aceptar(componente);
                 componente->numToken=(int)c;
                 aceptado=1;
                 break;
@@ -152,6 +149,7 @@ void automataNumerico(char c, token *componente){
                     break;
                 }
                 else if(c=='j'||c=='J'){
+                    aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=IMAGINARIO;
                     break;
@@ -331,6 +329,7 @@ void automataNumerico(char c, token *componente){
                     break;
                 }
                 else if(c=='j' || c=='J'){
+                    aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=IMAGINARIO;
                     break;//Los números imaginarios obligatoriamente terminan por J
@@ -410,6 +409,7 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                     estadoCorrespondiente=2;
                 }
                 else if(c=='j' || c=='J'){
+                    aceptar(componente);
                     aceptadoFlotante=1;
                     componente->numToken=IMAGINARIO;
                     break;//Los números imaginarios obligatoriamente terminan por J
@@ -434,6 +434,7 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                     estadoCorrespondiente=3;
                 }
                 else if(c=='j' || c=='J'){
+                    aceptar(componente);
                     aceptadoFlotante=1;
                     componente->numToken=IMAGINARIO;
                     break;//Los números imaginarios obligatoriamente terminan por J

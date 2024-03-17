@@ -39,30 +39,46 @@ void cargarBloque(){
 
     //Comprobamos si tenemos que cambiar de bloque porque el puntero delantero ya ha procesado el último caracter del buffer en el que está, este tiene que estar apuntando a la última posición de uno de los buffers
     if ((dobleCentinela.delantero == dobleCentinela.bufferA + TAM_BLOQUE -1) || (dobleCentinela.delantero == dobleCentinela.bufferB + TAM_BLOQUE -1)){
-        //Miramos el valor del bloque que tenemos que cargar
-        if(dobleCentinela.bloque_cargar==0){
-            // Leemos el archivo y lo almacenamos en el buffer A. En caso de que en el buffer ya hubiese contenido este se sobreescribe
-            fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-1, codigoFuente);
 
-            printf("Código fuente leído por el bloque A: %s\n", dobleCentinela.bufferA);
-
-            //Hacemos que el puntero delantero apunte al inicio del buffer
-            dobleCentinela.delantero = dobleCentinela.bufferA;
-            dobleCentinela.bufferA[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
-            dobleCentinela.bloque_cargar=1;
+        if(dobleCentinela.retroceso==1){//Miramos si tenemos que cargar el bloque al que se va a mover el puntero delantero
+            //En este caso no tenemos que cargarlo porque anteriormente ya hemos estado
+            if(dobleCentinela.delantero==dobleCentinela.bufferA+TAM_BLOQUE-1){
+                //Estamos al final del bufferA y pasamos al B sin cargarlo de nuevo
+                dobleCentinela.delantero=dobleCentinela.bufferB;
+            }
+            else{
+                //En otro caso estaremos al final del bufferB por lo que hacemos lo mismo pero al reves
+                dobleCentinela.delantero=dobleCentinela.bufferA;
+            }
+            //Ponemos la flag a cero hasta que se vuelva a poner a 1 debido a un retroceso en la ejecución
+            dobleCentinela.retroceso=0;
         }
         else{
-            // Leemos el archivo y lo almacenamos en el buffer B, que es el segundo bloque
-            fread(dobleCentinela.bufferB, sizeof(char), TAM_BLOQUE-1, codigoFuente);
+            //Miramos el valor del bloque que tenemos que cargar, ya que la flag de retroceso está desactivada
+            if(dobleCentinela.bloque_cargar==0){
 
-            printf("Código fuente leído por el bloque B: %s\n", dobleCentinela.bufferB);
+                // Leemos el archivo y lo almacenamos en el buffer A. En caso de que en el buffer ya hubiese contenido este se sobreescribe
+                fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-1, codigoFuente);
 
-            //Hacemos que el puntero delantero apunte al inicio del buffer
-            dobleCentinela.delantero = dobleCentinela.bufferB;
-            dobleCentinela.bufferB[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
-            dobleCentinela.bloque_cargar=0;
+                //-------------------------------------------------------------------------------------------printf("Código fuente leído por el bloque A: %s\n", dobleCentinela.bufferA);
+
+                //Hacemos que el puntero delantero apunte al inicio del buffer
+                dobleCentinela.delantero = dobleCentinela.bufferA;
+                dobleCentinela.bufferA[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
+                dobleCentinela.bloque_cargar=1;
+            }
+            else{
+                // Leemos el archivo y lo almacenamos en el buffer B, que es el segundo bloque
+                fread(dobleCentinela.bufferB, sizeof(char), TAM_BLOQUE-1, codigoFuente);
+
+                //-------------------------------------------------------------------------------------------printf("Código fuente leído por el bloque B: %s\n", dobleCentinela.bufferB);
+
+                //Hacemos que el puntero delantero apunte al inicio del buffer
+                dobleCentinela.delantero = dobleCentinela.bufferB;
+                dobleCentinela.bufferB[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
+                dobleCentinela.bloque_cargar=0;
+            }
         }
-
     }
 }
 
@@ -71,15 +87,29 @@ char siguienteCaracter() {
     char c;
     //Guardamos el valor del puntero delantero sin riesgo de que apunte a un EOF
     c=*dobleCentinela.delantero;
-    dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1
+    dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1 de manera segura
     cargarBloque();
-
     return c;
 }
 
 //Función para retroceder un caracter
 void retrocederCaracter() {
-    dobleCentinela.delantero--;
+    /*Tenemos que comprobar si el puntero delantero está al principio de uno de los buffers, porque en ese caso si retrocedemos tenemos que activar
+     una bandera para que no nos borre el contenido del último bloque que se ha cargado, ya que cuando volvamos a adelantar el delantero se cargaría de nuevo el bloque y perderíamos la información*/
+    if (dobleCentinela.delantero==dobleCentinela.bufferB){
+        //Si delantero apunta al principio del bufferB teneos que volver al último caracter antes del EOF del bufferA
+        dobleCentinela.delantero=dobleCentinela.bufferA+TAM_BLOQUE-2;
+        dobleCentinela.retroceso=1; //Activamos la flag de que vamos a retroceder y cuando volvamos al bloque del que hemos retrocedido no se cargue información, ya que existe información que aún no se ha procesado
+    }
+    else if(dobleCentinela.delantero==dobleCentinela.bufferA){
+        //Si delantero apunta al principio del bufferA teneos que volver al último caracter antes del EOF del bufferB
+        dobleCentinela.delantero=dobleCentinela.bufferB+TAM_BLOQUE-2;
+        dobleCentinela.retroceso=1;
+    }
+    else{
+        //Si no estamos en ninguno de los casos anteriores es seguro retroceder de caracter
+        dobleCentinela.delantero--;
+    }
 }
 
 //Función que reserva la memoria necesaria al lexema del token y le introduce su correspondiente valor
@@ -107,6 +137,8 @@ void aceptar(token *componente){
             size_t longitudA = (dobleCentinela.bufferA+TAM_BLOQUE-1) - dobleCentinela.inicio; //Devuelve los elementos desde el inicio incluído al EOF excluído
             size_t longitudB = (dobleCentinela.delantero - dobleCentinela.bufferB); //Devuelve los elementos desde el inicio del bloque B hasta la pos anterior al puntero delantero
             size_t longitudTotal = longitudA + longitudB;
+            printf("Tamanho del lexema aceptado: %zu\n",longitudTotal);
+
             if(longitudTotal>TAM_BLOQUE-1){
                 //Se ha superado el tamaó establecido para los lexemas
                 printf("Tamaño lexema a aceptar %zu\n",longitudTotal);
@@ -138,6 +170,8 @@ void aceptar(token *componente){
             size_t longitudB = (dobleCentinela.bufferB+TAM_BLOQUE-1) - dobleCentinela.inicio;
             size_t longitudA = (dobleCentinela.delantero - dobleCentinela.bufferA);
             size_t longitudTotal = longitudA + longitudB;
+            printf("Tamanho del lexema aceptado: %zu\n",longitudTotal);
+
             if(longitudTotal>TAM_BLOQUE-1){
                 //Se ha superado el tamaó establecido para los lexemas
                 printf("Tamaño lexema a aceptar %zu\n",longitudTotal);
