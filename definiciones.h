@@ -74,9 +74,6 @@
 #define DESPLAZA_IZQUIERDA_IGUAL 334
 #define POTENCIA_IGUAL 335
 
-//Comentarios
-#define LINEA 336
-
 //Literales
 #define LITERAL 337
 

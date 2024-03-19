@@ -3,10 +3,14 @@
 #include <string.h>
 
 #include "sistemaEntrada.h"
+#include "errores.h"
 
 
 //Funciones
 void cargarBloque();
+void omitirLexema();
+void lexemaSuperior_tamanhoA(token *componente);
+void lexemaSuperior_tamanhoB(token *componente);
 
 FILE *codigoFuente;
 SistemaDobleCentinela dobleCentinela;
@@ -16,7 +20,7 @@ void initEntrada(char *archivo) {
 
     // Abrimos el archivo
     if ((codigoFuente = fopen(archivo, "r")) == NULL) {
-        perror("No se pudo abrir el archivo");
+        reportarError(ERROR_FICHERO);
         exit(EXIT_FAILURE);
     }
 
@@ -31,6 +35,8 @@ void initEntrada(char *archivo) {
     dobleCentinela.bufferA[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
     //Ponemos la bandera del siguiente bloque que se cargará
     dobleCentinela.bloque_cargar=1;
+    //Inicializamos el contador de caracteres
+    dobleCentinela.caracteresEnviados=0;
 
 }
 
@@ -95,6 +101,8 @@ char siguienteCaracter() {
     c=*dobleCentinela.delantero;
     dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1 de manera segura
     cargarBloque();
+    //Aumentamos el contador de caracteres enviados
+    dobleCentinela.caracteresEnviados++;
     return c;
 }
 
@@ -131,7 +139,6 @@ void aceptar(token *componente){
             size_t longitudLexema= dobleCentinela.delantero - dobleCentinela.inicio;
             printf("Tamanho del lexema aceptado: %zu\n",longitudLexema);
             componente->lexema=(char*)malloc(sizeof (char)*(longitudLexema+1)); //Tenemos que reservar un sitio más para el caracter nulo
-
             //copiamos la zona del buffer A al componente.lexema
             memcpy(componente->lexema,dobleCentinela.inicio,longitudLexema);
             //Añadimos al lexema el caracter nulo
@@ -146,8 +153,8 @@ void aceptar(token *componente){
             printf("Tamanho del lexema aceptado: %zu\n",longitudTotal);
 
             if(longitudTotal>TAM_BLOQUE-1){
-                //Se ha superado el tamaó establecido para los lexemas
-                printf("Tamaño lexema a aceptar %zu\n",longitudTotal);
+                //Se ha superado el tamanho establecido para los lexemas
+                reportarError(SUPERA_TAMANHO);
             }
             componente->lexema=(char*)malloc(sizeof (char)*(longitudTotal+1));
 
@@ -180,14 +187,14 @@ void aceptar(token *componente){
 
             if(longitudTotal>TAM_BLOQUE-1){
                 //Se ha superado el tamaó establecido para los lexemas
-                printf("Tamaño lexema a aceptar %zu\n",longitudTotal);
+                reportarError(SUPERA_TAMANHO);
             }
             componente->lexema=(char*)malloc(sizeof (char)*(longitudTotal+1));
 
             //Copiamos del buffer A a componente.lexema
             memcpy(componente->lexema,dobleCentinela.inicio,longitudB);
             //Copiamos del buffer B a componente.lexema
-            memcpy(componente->lexema+ longitudB, dobleCentinela.bufferB, longitudA);
+            memcpy(componente->lexema+ longitudB, dobleCentinela.bufferA, longitudA);
             //Añadimos al lexema el caracter nulo
             componente->lexema[longitudTotal]='\0';
 
@@ -196,11 +203,61 @@ void aceptar(token *componente){
     //Una vez hemos aceptado el lexema, lo que hacemos es mover el puntero de inicio a donde está el delantero
     dobleCentinela.inicio=dobleCentinela.delantero;
 }
-
 void omitirCaracter(){
     //Aumentamos la direccion de memoria en el puntero inicio, para comezan a procesar el siguiente caracter
     dobleCentinela.inicio++;
 }
+void omitirLexema(){
+    dobleCentinela.inicio=dobleCentinela.delantero;
+}
+//Esta función se encargará de reservar memoria para los lexemas que tiene un tamanho superior al establecido por el programa, donde el puntero delantero está en el bufferA
+void lexemaSuperior_tamanhoA(token *componente){
+    //Primero lo que hacemos es saber cuantos espacios de memoria hay desde el puntero delantero al principio del bufferA
+    size_t espacios_en_A = dobleCentinela.delantero - dobleCentinela.bufferA;
+    //Miramos si los espacios en A son menores al tamaño de lexema, en otro caso el puntero delantero estará en el EOF del bufferA
+    size_t espaciosRestantes;//Variable que guardará la diferencia entre el tamaño de lexema y los espacios en el bufferA en el caso de necesitar espacios del otro buffer para reservar la memoria max permitida
+    if (espacios_en_A < TAM_BLOQUE-1){
+        espaciosRestantes=(TAM_BLOQUE-1)-espacios_en_A;
+        //Una vez tenemos los espacios restantes tenemos que apuntar el puntero de incio donde nos indica la resta de tamaño de lexema menos los espacios restantes en el bufferB
+        dobleCentinela.inicio= dobleCentinela.bufferB+TAM_BLOQUE-1-espaciosRestantes;
+        //Una vez ya tenemos el inicio donde debe estar podemos reservar memoria para el componente léxico
+        size_t reserva= espacios_en_A+espaciosRestantes;
+        componente->lexema=(char*)malloc(sizeof (char)*(reserva+1));//tenemos en cuenta el caracter nulo
+        //Copiamos del buffer A a componente.lexema
+        memcpy(componente->lexema,dobleCentinela.inicio,espaciosRestantes);
+        //Copiamos del buffer B a componente.lexema
+        memcpy(componente->lexema+ espaciosRestantes, dobleCentinela.bufferA, espacios_en_A);
+        //Añadimos al lexema el caracter nulo
+        componente->lexema[reserva]='\0';
 
-
+    }else{
+        //El puntero inicial debe apuntar al princio del bufferA
+        dobleCentinela.inicio=dobleCentinela.bufferA;
+        //Si ya tenemos los espacios necesarios reservamos memoria mas uno para el caracter nulo
+        componente->lexema=(char*)malloc(sizeof (char)*(espacios_en_A+1));
+        //copiamos la zona del buffer A al componente.lexema
+        memcpy(componente->lexema,dobleCentinela.inicio,espacios_en_A);
+        //Añadimos al lexema el caracter nulo
+        componente->lexema[espacios_en_A]='\0';
+    }
+}
+//Lo mismo que la anterior pero teniendo el puntero delantero en el bufferB
+void lexemaSuperior_tamanhoB(token *componente){
+    size_t espacios_en_B = dobleCentinela.delantero - dobleCentinela.bufferB;
+    size_t espaciosRestantes;//Variable que guardará la diferencia entre el tamaño de lexema y los espacios en el bufferA en el caso de necesitar espacios del otro buffer para reservar la memoria max permitida
+    if (espacios_en_B < TAM_BLOQUE-1){
+        espaciosRestantes=(TAM_BLOQUE-1)-espacios_en_B;
+        dobleCentinela.inicio= dobleCentinela.bufferA+TAM_BLOQUE-1-espaciosRestantes;
+        size_t reserva= espacios_en_B+espaciosRestantes;
+        componente->lexema=(char*)malloc(sizeof (char)*(reserva+1));//tenemos en cuenta el caracter nulo
+        memcpy(componente->lexema,dobleCentinela.inicio,espaciosRestantes);
+        memcpy(componente->lexema+ espaciosRestantes, dobleCentinela.bufferB, espacios_en_B);
+        componente->lexema[reserva]='\0';
+    }else{
+        dobleCentinela.inicio=dobleCentinela.bufferB;
+        componente->lexema=(char*)malloc(sizeof (char)*(espacios_en_B+1));
+        memcpy(componente->lexema,dobleCentinela.inicio,espacios_en_B);
+        componente->lexema[espacios_en_B]='\0';
+    }
+}
 //Finalizar sistema de entrada (Funcion donde liberaremos el buffer que contiene el contenido del fichero)

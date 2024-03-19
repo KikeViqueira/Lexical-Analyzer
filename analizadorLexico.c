@@ -83,7 +83,8 @@ token* siguienteToken() {
 
             case 5:
                 automataComentariosLinea(c,componente);
-                aceptado=1;
+                //Pedimos el siguiente caracter y nos vamos al estado cero para que decida que autómata tiene que hacerse cargo de procesar el lexema entrante
+                aceptado=0;
                 break;
 
         }
@@ -686,6 +687,8 @@ void automataComentariosLinea(char c, token *componente){
     }
 
     retrocederCaracter(); //Retrocedemos el '\n'
+    //Como no nos interesa hacer un componente lexico de un comentario omitimos el lexema
+    omitirLexema();
 }
 
 //Autómata que acepta los distintos literales posibles de Python
