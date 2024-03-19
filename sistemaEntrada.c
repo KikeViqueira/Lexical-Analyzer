@@ -58,7 +58,7 @@ void cargarBloque(){
             if(dobleCentinela.bloque_cargar==0){
 
                 // Leemos el archivo y lo almacenamos en el buffer A. En caso de que en el buffer ya hubiese contenido este se sobreescribe
-                fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-1, codigoFuente);
+                size_t caracteresLeidos = fread(dobleCentinela.bufferA, sizeof(char), TAM_BLOQUE-1, codigoFuente);
 
                 //-------------------------------------------------------------------------------------------printf("Código fuente leído por el bloque A: %s\n", dobleCentinela.bufferA);
 
@@ -66,10 +66,13 @@ void cargarBloque(){
                 dobleCentinela.delantero = dobleCentinela.bufferA;
                 dobleCentinela.bufferA[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
                 dobleCentinela.bloque_cargar=1;
+                if(caracteresLeidos < TAM_BLOQUE-1) {
+                    dobleCentinela.bufferA[caracteresLeidos] = EOF;
+                }
             }
             else{
                 // Leemos el archivo y lo almacenamos en el buffer B, que es el segundo bloque
-                fread(dobleCentinela.bufferB, sizeof(char), TAM_BLOQUE-1, codigoFuente);
+                size_t caracteresLeidos = fread(dobleCentinela.bufferB, sizeof(char), TAM_BLOQUE-1, codigoFuente);
 
                 //-------------------------------------------------------------------------------------------printf("Código fuente leído por el bloque B: %s\n", dobleCentinela.bufferB);
 
@@ -77,6 +80,9 @@ void cargarBloque(){
                 dobleCentinela.delantero = dobleCentinela.bufferB;
                 dobleCentinela.bufferB[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
                 dobleCentinela.bloque_cargar=0;
+                if(caracteresLeidos < TAM_BLOQUE-1) {
+                    dobleCentinela.bufferA[caracteresLeidos] = EOF;
+                }
             }
         }
     }

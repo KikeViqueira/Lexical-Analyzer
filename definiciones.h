@@ -77,5 +77,8 @@
 //Comentarios
 #define LINEA 336
 
+//Literales
+#define LITERAL 337
+
 
 #endif

@@ -13,6 +13,7 @@ void automataNumerico(char c, token *componente);
 void automataFlotantes(char c,int estadoCorrespondiente, token *componente);
 void automataOperadores(char c, token *componente);
 void automataComentariosLinea(char c, token *componente);
+void automataLiterales(char c, token *componente);
 
 token* siguienteToken() {
     token *componente = (token*) malloc(sizeof(token));
@@ -38,9 +39,12 @@ token* siguienteToken() {
                     //Si es un espacio en blanco no lo procesamos, y pasamos a analizar el siguiente caracter
                     omitirCaracter();
                     c=siguienteCaracter();
-                    break;
                 }else if(c=='#'){
                     estado=5;
+                }
+                else if(c=='"'|c==39){
+                    automataLiterales(c, componente);
+                    aceptado=1;
                 }
                 else{
                     estado=4;
@@ -79,6 +83,7 @@ token* siguienteToken() {
 
             case 5:
                 automataComentariosLinea(c,componente);
+                aceptado=1;
                 break;
 
         }
@@ -127,9 +132,6 @@ void automataNumerico(char c, token *componente){
                 }else if(c=='.'){//Este if es para aceptar números del estilo de .0001
                     automataFlotantes(c,0, componente);
                     aceptadoNumeros=1;
-                    break;
-                }else{
-                    break;
                 }
                 break;
 
@@ -146,27 +148,23 @@ void automataNumerico(char c, token *componente){
                     //Nos vamos al autómata de flotantes al caso en concreto que maneja los posibles números con exponentes
                     automataFlotantes(c,  4, componente);
                     aceptadoNumeros = 1;
-                    break;
                 }
                 else if(c=='j'||c=='J'){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=IMAGINARIO;
-                    break;
                 }else if(isdigit(c)){
                     estado=11;
                 }
                 else if(c=='.'){
                     automataFlotantes(c,1,componente);
                     aceptadoNumeros=1;
-                    break;
                 }
                 else{
                     retrocederCaracter();
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;
                 }
                 break;
 
@@ -183,7 +181,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;
                 }
                 break;
 
@@ -201,7 +198,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;
                 }
                 break;
 
@@ -215,7 +211,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;//Salimos del switch
                 }
                 break;
 
@@ -231,7 +226,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;
                 }
                 break;
 
@@ -248,7 +242,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;
                 }
                 break;
 
@@ -262,7 +255,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;//Salimos del switch
                 }
                 break;
 
@@ -278,7 +270,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;
                 }
                 break;
 
@@ -295,7 +286,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;
                 }
                 break;
 
@@ -309,7 +299,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;//Salimos del switch
                 }
                 break;
 
@@ -326,18 +315,17 @@ void automataNumerico(char c, token *componente){
                 else if(c=='.'){
                     automataFlotantes(c,1,componente);
                     aceptadoNumeros=1;
-                    break;
                 }
                 else if(c=='j' || c=='J'){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=IMAGINARIO;
-                    break;//Los números imaginarios obligatoriamente terminan por J
+                    //Los números imaginarios obligatoriamente terminan por J
+
                 }else if(c=='e' || c=='E'){
                     //Nos vamos al autómata de flotantes al caso en concreto que maneja los posibles números con exponentes
                     automataFlotantes(c,4,componente);
                     aceptadoNumeros=1;
-                    break;
                 }
                 else{
                     //Se ha aceptado el lexama, retrocedemos una posicion
@@ -345,7 +333,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;
                 }
                 break;
 
@@ -359,7 +346,6 @@ void automataNumerico(char c, token *componente){
                     aceptar(componente);
                     aceptadoNumeros=1;
                     componente->numToken=ENTERO;
-                    break;//Salimos del switch
                 }
                 break;
 
@@ -392,13 +378,11 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                 else if(c=='j' || c=='J'){
                     aceptadoFlotante=1;
                     componente->numToken=IMAGINARIO;
-                    break;//Los números imaginarios obligatoriamente terminan por J
                 }
                 else{
                     //en caso de recibir otra cosa tenemos que salir del autómata de números ya que el punto se enviará de manera individual
                     retrocederCaracter();
                     aceptadoFlotante=1;
-                    break;
                 }
                 break;
 
@@ -412,14 +396,13 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                     aceptar(componente);
                     aceptadoFlotante=1;
                     componente->numToken=IMAGINARIO;
-                    break;//Los números imaginarios obligatoriamente terminan por J
+                    //Los números imaginarios obligatoriamente terminan por J
                 }
                 else{
                     retrocederCaracter();
                     aceptar(componente);
                     componente->numToken=FLOTANTE;
                     aceptadoFlotante=1;
-                    break;
                 }
                 break;
 
@@ -437,7 +420,6 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                     aceptar(componente);
                     aceptadoFlotante=1;
                     componente->numToken=IMAGINARIO;
-                    break;//Los números imaginarios obligatoriamente terminan por J
                 }
                 else if(c=='e' || c=='E'){
                     estadoCorrespondiente=4;
@@ -447,7 +429,6 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                     aceptar(componente);
                     componente->numToken=FLOTANTE;
                     aceptadoFlotante=1;
-                    break;
                 }
                 break;
 
@@ -463,7 +444,6 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                     aceptar(componente);
                     componente->numToken=FLOTANTE;
                     aceptadoFlotante=1;
-                    break;//Salimos del switch
                 }
                 break;
 
@@ -481,7 +461,6 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                     aceptar(componente);
                     componente->numToken=FLOTANTE;
                     aceptadoFlotante=1;
-                    break;
                 }
                 break;
 
@@ -496,7 +475,6 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                     aceptar(componente);
                     componente->numToken=FLOTANTE;
                     aceptadoFlotante=1;
-                    break;
                 }
                 break;
 
@@ -710,6 +688,184 @@ void automataComentariosLinea(char c, token *componente){
     retrocederCaracter(); //Retrocedemos el '\n'
 }
 
+//Autómata que acepta los distintos literales posibles de Python
+void automataLiterales(char c, token *componente){
+    //El caracter que recibe este autómata es una comilla simple ' o una doble comilla "
+    int aceptadoLiterales=0;
+    int estado = 0;
+
+    while(aceptadoLiterales==0){
+        switch (estado) {
+            case 0:
+                if(c=='"'){
+                    estado=1;
+                }else{
+                    //Si no es comilla doble tiene que ser obligatoriamente comilla simple
+                    estado=8;
+                }
+                break;
+            case 1:
+                c=siguienteCaracter();
+                if(c=='"'){
+                    estado=2;
+                }else{
+                    estado=7;
+                }
+                break;
+
+            case 2:
+                c=siguienteCaracter();
+                if(c=='"'){
+                    estado=3;
+                }else{
+                    retrocederCaracter();
+                    aceptar(componente);
+                    componente->numToken=LITERAL;
+                    aceptadoLiterales=1;
+                }
+                break;
+
+            case 3:
+                c=siguienteCaracter();
+                if(c!='"'){
+                    estado=4;
+                }else{
+                    //Caso de tener un string literal multilinea vacío de comilla doble
+                    estado=5;
+                }
+                break;
+
+            case 4:
+                c=siguienteCaracter();
+                while(c!='"'){
+                    c=siguienteCaracter();
+                }
+                //Una vez que hemos salido del bucle es porque hemos recibido una doble comilla "
+                estado=5;
+                break;
+
+            case 5:
+                c=siguienteCaracter();
+                if(c=='"'){
+                    estado=6;
+                }else{
+                    retrocederCaracter();
+                    aceptar(componente);
+                    componente->numToken=LITERAL;
+                    aceptadoLiterales=1;
+                }
+                break;
+
+            case 6:
+                c=siguienteCaracter();
+                if(c=='"'){
+                    aceptar(componente);
+                    componente->numToken=LITERAL;
+                    aceptadoLiterales=1;
+                    //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
+                }else{
+                    retrocederCaracter();
+                    aceptar(componente);
+                    componente->numToken=LITERAL;
+                    aceptadoLiterales=1;
+                }
+                break;
+
+            case 7:
+                c=siguienteCaracter();
+                while(c!='"'){
+                    c=siguienteCaracter();
+                }
+                //Una vez que hemos salido del bucle es porque hemos recibido una doble comilla " y se cierra el String literal de una linea -> "Hola que tal?"
+                aceptar(componente);
+                componente->numToken=LITERAL;
+                aceptadoLiterales=1;
+                //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
+                break;
+
+            case 8:
+                c=siguienteCaracter();
+                if(c==39){
+                    estado=9;
+                }else{
+                    //Estamos ante el caso de una abertura de string literal de una linea de simple comilla -> 'H
+                    estado=14;
+                }
+                break;
+
+            case 9:
+                c=siguienteCaracter();
+                if(c==39){
+                    estado=10;
+                }else{
+                    retrocederCaracter();
+                    aceptar(componente);
+                    componente->numToken=LITERAL;
+                    aceptadoLiterales=1;
+                }
+                break;
+
+            case 10:
+                c=siguienteCaracter();
+                if(c!=39){
+                    estado=11;
+                }else{
+                    //Caso de tener un string literal multilinea vacío de comilla simple
+                    estado=12;
+                }
+                break;
+
+            case 11:
+                c=siguienteCaracter();
+                while(c!=39){
+                    c=siguienteCaracter();
+                }
+                //Una vez que hemos salido del bucle es porque hemos recibido una doble simple '
+                estado=12;
+                break;
+
+            case 12:
+                c=siguienteCaracter();
+                if(c==39){
+                    estado=13;
+                }else{
+                    retrocederCaracter();
+                    aceptar(componente);
+                    componente->numToken=LITERAL;
+                    aceptadoLiterales=1;
+                }
+                break;
+
+            case 13:
+                c=siguienteCaracter();
+                if(c==39){
+                    aceptar(componente);
+                    componente->numToken=LITERAL;
+                    aceptadoLiterales=1;
+                    //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
+                }else{
+                    retrocederCaracter();
+                    aceptar(componente);
+                    componente->numToken=LITERAL;
+                    aceptadoLiterales=1;
+                }
+                break;
+
+            case 14:
+                c=siguienteCaracter();
+                while(c!=39){
+                    c=siguienteCaracter();
+                }
+                //Una vez que hemos salido del bucle es porque hemos recibido una doble comilla " y se cierra el String literal de una linea -> 'Hola que tal?'
+                aceptar(componente);
+                componente->numToken=LITERAL;
+                aceptadoLiterales=1;
+                //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
+                break;
+        }
+    }
+
+}
 
 
 
