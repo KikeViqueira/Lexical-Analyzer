@@ -8,7 +8,6 @@
 
 //Funciones
 void cargarBloque();
-void omitirLexema();
 void lexemaSuperior_tamanhoA(token *componente);
 void lexemaSuperior_tamanhoB(token *componente);
 
@@ -124,6 +123,8 @@ void retrocederCaracter() {
         //Si no estamos en ninguno de los casos anteriores es seguro retroceder de caracter
         dobleCentinela.delantero--;
     }
+    //decrementamos el contador de caracteres enviados para aceptar el lexema
+    dobleCentinela.caracteresEnviados--;
 }
 
 //Función que reserva la memoria necesaria al lexema del token y le introduce su correspondiente valor
@@ -155,15 +156,19 @@ void aceptar(token *componente){
             if(longitudTotal>TAM_BLOQUE-1){
                 //Se ha superado el tamanho establecido para los lexemas
                 reportarError(SUPERA_TAMANHO);
-            }
-            componente->lexema=(char*)malloc(sizeof (char)*(longitudTotal+1));
+                //llamamos a la funcion correspondiente para que se quede solo con los ultimos TAM_BlOQUE-1 caracteres
+                lexemaSuperior_tamanhoB(componente);
+            }else{
+                componente->lexema=(char*)malloc(sizeof (char)*(longitudTotal+1));
 
-            //Copiamos del buffer A a componente.lexema
-            memcpy(componente->lexema,dobleCentinela.inicio,longitudA);
-            //Copiamos del buffer B a componente.lexema
-            memcpy(componente->lexema+ longitudA, dobleCentinela.bufferB, longitudB);
-            //Añadimos al lexema el caracter nulo
-            componente->lexema[longitudTotal]='\0';
+                //Copiamos del buffer A a componente.lexema
+                memcpy(componente->lexema,dobleCentinela.inicio,longitudA);
+                //Copiamos del buffer B a componente.lexema
+                memcpy(componente->lexema+ longitudA, dobleCentinela.bufferB, longitudB);
+                //Añadimos al lexema el caracter nulo
+                componente->lexema[longitudTotal]='\0';
+            }
+
 
         }
 
@@ -188,6 +193,7 @@ void aceptar(token *componente){
             if(longitudTotal>TAM_BLOQUE-1){
                 //Se ha superado el tamaó establecido para los lexemas
                 reportarError(SUPERA_TAMANHO);
+                lexemaSuperior_tamanhoA(componente);
             }
             componente->lexema=(char*)malloc(sizeof (char)*(longitudTotal+1));
 
@@ -261,3 +267,7 @@ void lexemaSuperior_tamanhoB(token *componente){
     }
 }
 //Finalizar sistema de entrada (Funcion donde liberaremos el buffer que contiene el contenido del fichero)
+void finalizarSistemaEntrada(){
+    //Tenemos que cerrar el archivo y liberar los recursos usados por el sistema de entrada
+    fclose(codigoFuente);
+}

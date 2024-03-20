@@ -10,4 +10,10 @@ int buscarLexema(char *lexema_a_buscar);
 // Función para insertar un lexema en la tabla de símbolos
 void insertarLexema(char *lexema_a_insertar,TIPOELEMENTOABB *nodo);
 
+//Función para imprimir el contenido de la tabla de símbolos
+void imprimirTablaSimbolos();
+
+//Función para liberar la memoria usada por la tabla de símbolos
+void liberarTS();
+
 #endif

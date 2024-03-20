@@ -35,7 +35,7 @@ void omitirCaracter();
 
 ////Funcion para saltar un lexema que no queremos procesar
 void omitirLexema();
-// Funcion para finalizar el sistema de entrada
-//void finalizarEntrada();
+// Funcion para finalizar el sistema de entrada y liberar sus recursos
+void finalizarSistemaEntrada();
 
 #endif

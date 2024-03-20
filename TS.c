@@ -87,3 +87,11 @@ void insertarLexema(char *lexema_a_insertar, TIPOELEMENTOABB *nodo){
     //Ahora que nodo tiene la información necesaria, metemos el elemento en el árbol
     insertarElementoAbb(&arbol,*nodo);
 }
+
+void imprimirTablaSimbolos(){
+    imprimir(arbol);
+}
+
+void liberarTS(){
+    destruirAbb(&arbol);
+}

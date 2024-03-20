@@ -6,6 +6,7 @@
 #include "sistemaEntrada.h"
 #include "TS.h"
 #include "definiciones.h"
+#include "errores.h"
 
 // Autómatas
 void automataAlphaNumerico( char c,token *componente);
@@ -86,6 +87,9 @@ token* siguienteToken() {
                 //Pedimos el siguiente caracter y nos vamos al estado cero para que decida que autómata tiene que hacerse cargo de procesar el lexema entrante
                 aceptado=0;
                 break;
+            default:
+                reportarError(LEXEMA_INVALIDO);
+                break;
 
         }
 
@@ -93,6 +97,7 @@ token* siguienteToken() {
 
     //Caso de que se ha alcanzado el final del fichero
     if(c==EOF){
+        finalizarSistemaEntrada();
         componente->lexema=NULL;
         componente->numToken=EOF;
     }
@@ -869,6 +874,5 @@ void automataLiterales(char c, token *componente){
     }
 
 }
-
 
 
