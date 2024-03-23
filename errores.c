@@ -19,5 +19,8 @@ void reportarError(int estado){
             printf("El lexema aceptado tiene un tamanho superior al permitido, nos quedaremos con lo maximo permitido desde el final hacia atras...\n");
             break;
 
+        default:
+            break;
+
     }
 }

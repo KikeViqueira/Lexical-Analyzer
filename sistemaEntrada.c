@@ -146,7 +146,7 @@ void aceptar(token *componente){
                 memcpy(componente->lexema, &dobleCentinela.bufferA,TAM_BLOQUE-1);
 
             }else{
-                size_t longitudB = dobleCentinela.bufferB[TAM_BLOQUE-1] - longitudA;
+                size_t longitudB = (TAM_BLOQUE-1) - longitudA;
                 reportarError(SUPERA_TAMANHO);
                 componente->lexema=(char*)malloc(sizeof (char)*(TAM_BLOQUE));
                 memcpy(componente->lexema, &dobleCentinela.bufferB[TAM_BLOQUE-1-longitudB],longitudB);

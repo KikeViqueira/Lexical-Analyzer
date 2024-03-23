@@ -7,7 +7,6 @@
 #include "TS.h"
 #include "definiciones.h"
 #include "errores.h"
-
 // Autómatas
 void automataAlphaNumerico( char c,token *componente);
 void automataNumerico(char c, token *componente);
@@ -15,13 +14,16 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente);
 void automataOperadores(char c, token *componente);
 void automataComentariosLinea(char c);
 void automataLiterales(char c, token *componente);
-
 //Contador que nos indicará en que línea se ha producido el error
 int errorLinea=0;
-
 //Flag especial para saber si el lexema a devolver es un punto a secas "." o un número flotante que comienza por punto .673672
 int punto=0;
-
+//Función para modularizar el código y no repetir tantas líneas
+void aceptarLexema(token *componente,int tipoLexema, int *flagSwitch){
+    aceptar(componente);
+    componente->numToken=tipoLexema;
+    *flagSwitch=1;
+}
 
 token* siguienteToken() {
     token *componente = (token*) malloc(sizeof(token));
@@ -36,43 +38,31 @@ token* siguienteToken() {
     while (c != EOF && aceptado==0) {
         switch (estado) {
             case 0://esatado inicial
-                if(isalpha(c) || c=='_'){//Si es un caracter alfabético o una _ llamamos al autómata alphanumérico
-                    estado=1;
-                }
-                else if(isdigit(c) || c=='.'){//Si es número o . llamamos al autómata numérico (Vamos a tener en cuenta el flag de si es punto o número flotante
-                    estado=2;
-                }else if(c=='\n'){
-                    estado=3;
-                }else if(c==' '){
+                if(isalpha(c) || c=='_') estado=1;//Si es un caracter alfabético o una _ llamamos al autómata alphanumérico
+                else if(isdigit(c) || c=='.') estado=2;//Si es número o . llamamos al autómata numérico (Vamos a tener en cuenta el flag de si es punto o número flotante
+                else if(c=='\n') estado=3;
+                else if(c==' '){
                     //Si es un espacio en blanco no lo procesamos, y pasamos a analizar el siguiente caracter
                     omitirCaracter();
                     c=siguienteCaracter();
-                }else if(c=='#'){
-                    estado=5;
                 }
+                else if(c=='#') estado=5;
                 else if(c=='"'|c==39){
                     automataLiterales(c, componente);
                     if(componente->lexema==NULL){
                         //Si el lexema del componente vale NULL quiere decir que el lexema que ha procesado el autómata es un comentario y no ha creado un componente léxico, se ha omitido el lexema
                         c=siguienteCaracter();//Comenzamos a procesar el siguiente lexema
-                    }else{
-                        aceptado=1;
                     }
-
+                    else aceptado=1;
                 }
-                else{
-                    estado=4;
-                }
+                else estado=4;
                 break;
 
             case 1:
                 automataAlphaNumerico(c,componente);
                 //tenemos que buscar el correspondiente número del lexema en la TS, que lo devolverá la función de buscarLexema(), si el lexema está compuesto por mas de un caracter
-                if(strlen(componente->lexema)==1){
-                    componente->numToken=(int)componente->lexema[0];
-                }else{
-                    buscarLexema(componente);
-                }
+                if(strlen(componente->lexema)==1) componente->numToken=(int)componente->lexema[0];
+                else buscarLexema(componente);
                 aceptado=1;
                 break;
 
@@ -84,14 +74,13 @@ token* siguienteToken() {
                     punto=0;//Hacemos un reset de el flag
                 }
                 aceptado=1;
-
                 break;
+
             case 3:
                 errorLinea++;
-                aceptar(componente);
-                componente->numToken=(int)c;
-                aceptado=1;
+                aceptarLexema(componente,(int)c,&aceptado);
                 break;
+
             case 4:
                 automataOperadores(c,componente);
                 aceptado=1;
@@ -103,46 +92,37 @@ token* siguienteToken() {
                 c=siguienteCaracter();
                 estado=0;
                 break;
+
             default:
                 reportarError(LEXEMA_INVALIDO);
                 break;
-
         }
-
     }
-
     //Caso de que se ha alcanzado el final del fichero
     if(c==EOF){
         finalizarSistemaEntrada();
         componente->lexema=NULL;
         componente->numToken=EOF;
     }
-
     //Le mandamos el componente->léxico al analizador sintáctico
     return componente;
-
 }
 
 //Autómata que acepta los distintas cadenas alphanuméricas
 void automataAlphaNumerico(char c, token *componente) {
     c=siguienteCaracter();
-
-    while (c!=EOF && (isalnum(c) || c=='_')){
-        c=siguienteCaracter();
-    }
+    while (c!=EOF && (isalnum(c) || c=='_')) c=siguienteCaracter();
     //Si hemos salido del bucle es por un caracter que no aceptamos por lo que retrocedemos el puntero una posición para que en el siguiente componente léxico se lea dicho caracter
     retrocederCaracter();
     //Aeceptamos el lexema que está correctamente formado
     aceptar(componente);
-
 }
 
 //Autómata que acepta los distintos tipos de números enteros
 void automataNumerico(char c, token *componente){
     //El caracter que recibe este autómata es un número o un punto
-    int aceptadoNumeros=0;
-    int estado = 0;
 
+    int aceptadoNumeros=0,estado = 0;
     while (aceptadoNumeros == 0){
         switch (estado) {
             case 0:
@@ -160,33 +140,24 @@ void automataNumerico(char c, token *componente){
             case 1:
                 //automata de codificaciones (binario, hexadecimal y octal)
                 c=siguienteCaracter();
-                if(c=='b' || c=='B'){
-                    estado=2;
-                }else if (c=='x' || c=='X'){
-                    estado=8;
-                }else if (c=='o' || c=='O'){
-                    estado=5;
-                }else if(c=='e' || c=='E') {
+                if(c=='b' || c=='B') estado=2;
+                else if (c=='x' || c=='X') estado=8;
+                else if (c=='o' || c=='O') estado=5;
+                else if(c=='e' || c=='E') {
                     //Nos vamos al autómata de flotantes al caso en concreto que maneja los posibles números con exponentes
                     automataFlotantes(c,  4, componente);
                     aceptadoNumeros = 1;
                 }
-                else if(c=='j'||c=='J'){
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=IMAGINARIO;
-                }else if(isdigit(c)){
-                    estado=11;
-                }
+                else if(c=='j'||c=='J') aceptarLexema(componente, IMAGINARIO, &aceptadoNumeros);
+                else if(isdigit(c)) estado=11;
+
                 else if(c=='.'){
                     automataFlotantes(c,1,componente);
                     aceptadoNumeros=1;
                 }
                 else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
@@ -195,44 +166,34 @@ void automataNumerico(char c, token *componente){
                 //Estamos en el caso de los binarios
                 c=siguienteCaracter();
 
-                if(c=='0'||c=='1'){
-                    estado=3;
-                }else{
+                if(c=='0'||c=='1') estado=3;
+                else{
                     //En caso de que después de la b se reciba un caracter distinto a un punto tenemos que retroceder tres posiciones para que el puntero apunte al cero inicial
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
             case 3:
                 c=siguienteCaracter();
 
-                while(c=='0' || c=='1'){
-                    c=siguienteCaracter();
-                }
-                if(c=='_'){
-                    estado=4;
-                }else{
+                while(c=='0' || c=='1') c=siguienteCaracter();
+
+                if(c=='_') estado=4;
+                else{
                     //Se ha aceptado el lexama, retrocedemos una posicion
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
             case 4:
                 c=siguienteCaracter();
-                if(c=='0' || c=='1'){
-                    estado=3;
-                }else{
+                if(c=='0' || c=='1') estado=3;
+                else{
                     //Si recibimos otro caracter cualquiera que no sea un número, tenemos que retroceder 3 posiciones para que el puntero apunte al último número y aceptamos el lexema
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
@@ -241,42 +202,32 @@ void automataNumerico(char c, token *componente){
                 //Estamos en el caso de los binarios
                 c=siguienteCaracter();
 
-                if(c>='0' && c<='7' ){
-                    estado=6;
-                }else{
+                if(c>='0' && c<='7' ) estado=6;
+                else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
             case 6:
                 c=siguienteCaracter();
-                while(c>='0' && c<='7'){
-                    c=siguienteCaracter();
-                }
-                if(c=='_'){
-                    estado=7;
-                }else{
+                while(c>='0' && c<='7') c=siguienteCaracter();
+
+                if(c=='_') estado=7;
+                else{
                     //Se ha aceptado el lexama, retrocedemos una posicion
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
             case 7:
                 c=siguienteCaracter();
-                if(c>='0' && c<='7'){
-                    estado=6;
-                }else{
+                if(c>='0' && c<='7') estado=6;
+                else{
                     //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
@@ -285,66 +236,46 @@ void automataNumerico(char c, token *componente){
                 //Estamos en el caso de los binarios
                 c=siguienteCaracter();
 
-                if(isxdigit(c)){
-                    estado=9;
-                }else{
+                if(isxdigit(c)) estado=9;
+                else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
             case 9:
                 c=siguienteCaracter();
-                while(isxdigit(c)){
-                    c=siguienteCaracter();
-                }
-                if(c=='_'){
-                    estado=10;
-                }else{
+                while(isxdigit(c)) c=siguienteCaracter();
+
+                if(c=='_') estado=10;
+                else{
                     //Se ha aceptado el lexama, retrocedemos una posicion
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
             case 10:
                 c=siguienteCaracter();
-                if(isxdigit(c)){
-                    estado=9;
-                }else{
+                if(isxdigit(c)) estado=9;
+                else{
                     //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
-
             case 11:
                 c=siguienteCaracter();
-                while(isdigit(c)){
-                    c=siguienteCaracter();
-                }
+                while(isdigit(c)) c=siguienteCaracter();
 
-                if(c=='_'){
-                    estado=12;
-                }
+                if(c=='_') estado=12;
                 else if(c=='.'){
                     automataFlotantes(c,1,componente);
                     aceptadoNumeros=1;
                 }
-                else if(c=='j' || c=='J'){
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=IMAGINARIO;
-                    //Los números imaginarios obligatoriamente terminan por J
-
-                }else if(c=='e' || c=='E'){
+                else if(c=='j' || c=='J') aceptarLexema(componente, IMAGINARIO, &aceptadoNumeros); //Los números imaginarios obligatoriamente terminan por J
+                else if(c=='e' || c=='E'){
                     //Nos vamos al autómata de flotantes al caso en concreto que maneja los posibles números con exponentes
                     automataFlotantes(c,4,componente);
                     aceptadoNumeros=1;
@@ -352,25 +283,19 @@ void automataNumerico(char c, token *componente){
                 else{
                     //Se ha aceptado el lexama, retrocedemos una posicion
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
 
             case 12:
                 c=siguienteCaracter();
-                if(isdigit(c)){
-                    estado=11;
-                }else{
+                if(isdigit(c)) estado=11;
+                else{
                     //Si recibimos otro caracter cualquiera tenemos que retroceder 2 posiciones y aceptamos el lexema
                     retrocederCaracter();
-                    aceptar(componente);
-                    aceptadoNumeros=1;
-                    componente->numToken=ENTERO;
+                    aceptarLexema(componente, ENTERO, &aceptadoNumeros);
                 }
                 break;
-
         }
     }
 
@@ -379,26 +304,15 @@ void automataNumerico(char c, token *componente){
 //Autómata que acepta los distintos tipos de números flotantes
 void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
 
-    /*MUY IMPORTANTE: *indice++: Obtén el valor apuntado por indice, luego incrementa el puntero indice en sí (para que apunte a la siguiente dirección de memoria).
-     (*indice)++: Incrementa el valor al que indice apunta, sin cambiar la dirección que almacena el puntero indice.
-     En nuestro tenemos que usar la segunda opción ya que indice no es un array dinámico si no una variable tipo inte que funciona de contador, a la cual incrementaremos el valor para
-     saber donde hay que almacenar el caracter en el buffer*/
-
     int aceptadoFlotante=0;
-
     while (aceptadoFlotante==0){
         switch (estadoCorrespondiente) {
 
             case 0:
                 //llegamos siempre con un punto (Caso para aceptar numeros del tipo .2)
                 c=siguienteCaracter();
-                if(isdigit(c)){
-                    estadoCorrespondiente=2;
-                }
-                else if(c=='j' || c=='J'){
-                    aceptadoFlotante=1;
-                    componente->numToken=IMAGINARIO;
-                }
+                if(isdigit(c)) estadoCorrespondiente=2;
+                else if(c=='j' || c=='J') aceptarLexema(componente, IMAGINARIO, &aceptadoFlotante);
                 else{
                     //en caso de recibir otra cosa tenemos que salir del autómata de números ya que el punto se enviará de manera individual
                     punto=1;//Activamos el flag para que el analizador léxico sepa que el lexema que vamos a aceptar es un punto solo
@@ -410,131 +324,84 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
             case 1:
                 //llegamos siempre con un punto (Caso para aceptar números del tipo 35.2)
                 c=siguienteCaracter();
-                if(isdigit(c)){
-                    estadoCorrespondiente=2;
-                }
-                else if(c=='j' || c=='J'){
-                    aceptar(componente);
-                    aceptadoFlotante=1;
-                    componente->numToken=IMAGINARIO;
-                    //Los números imaginarios obligatoriamente terminan por J
-                }
+                if(isdigit(c)) estadoCorrespondiente=2;
+                else if(c=='j' || c=='J') aceptarLexema(componente, ENTERO, &aceptadoFlotante);
                 else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=FLOTANTE;
-                    aceptadoFlotante=1;
+                    aceptarLexema(componente, FLOTANTE, &aceptadoFlotante);
                 }
                 break;
 
             case 2:
                 c=siguienteCaracter();
                 //Mientras lleguen números aceptamos
-                while(isdigit(c)){
-                    c=siguienteCaracter();
-                }
+                while(isdigit(c)) c=siguienteCaracter();
 
-                if(c=='_'){
-                    estadoCorrespondiente=3;
-                }
-                else if(c=='j' || c=='J'){
-                    aceptar(componente);
-                    aceptadoFlotante=1;
-                    componente->numToken=IMAGINARIO;
-                }
-                else if(c=='e' || c=='E'){
-                    estadoCorrespondiente=4;
-                }
+                if(c=='_') estadoCorrespondiente=3;
+                else if(c=='j' || c=='J') aceptarLexema(componente, IMAGINARIO, &aceptadoFlotante);
+                else if(c=='e' || c=='E') estadoCorrespondiente=4;
                 else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=FLOTANTE;
-                    aceptadoFlotante=1;
+                    aceptarLexema(componente, FLOTANTE, &aceptadoFlotante);
                 }
                 break;
 
             case 3:
-
                 c=siguienteCaracter();
-                if(isdigit(c)){
-                    estadoCorrespondiente=2;
-                }
+                if(isdigit(c)) estadoCorrespondiente=2;
                 else{
                     //Si recibimos otro caracter cualquiera tenemos que retroceder 3 posiciones y aceptamos el lexema
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=FLOTANTE;
-                    aceptadoFlotante=1;
+                    aceptarLexema(componente, FLOTANTE, &aceptadoFlotante);
                 }
                 break;
 
                 //Los casos de aqui en adelante son para números con exponentes
             case 4:
                 c=siguienteCaracter();
-                if(isdigit(c)){
-                    estadoCorrespondiente=2;
-                }
-                else if(c=='-' || c=='+'){
-                    estadoCorrespondiente=5;
-                }
+                if(isdigit(c)) estadoCorrespondiente=2;
+                else if(c=='-' || c=='+') estadoCorrespondiente=5;
                 else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=FLOTANTE;
-                    aceptadoFlotante=1;
+                    aceptarLexema(componente, FLOTANTE, &aceptadoFlotante);
                 }
                 break;
 
             case 5:
                 //Caso por si después del E se recibe un - o +
                 c=siguienteCaracter();
-                if(isdigit(c)){
-                    estadoCorrespondiente=2;
-                }
+                if(isdigit(c)) estadoCorrespondiente=2;
                 else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=FLOTANTE;
-                    aceptadoFlotante=1;
+                    aceptarLexema(componente, FLOTANTE, &aceptadoFlotante);
                 }
                 break;
-
         }
     }
-
-
 }
 
 //Autómata que acepta los distintos tipos de operadores y delimitadores
 void automataOperadores(char c, token *componente){
-    int aceptadoOperador=0,estado=0;
 
+    int aceptadoOperador=0,estado=0;
     while (aceptadoOperador==0){
         switch (estado) {
             case 0:
-                if(c=='>'){
-                    estado=1;
-                }else if(c=='<'){
-                    estado=2;
-                }else if(c=='+'||c=='%'||c=='@'||c=='&'||c=='|'||c=='='||c=='^'||c==':') {
-                    estado = 6;
-                }else if(c=='-') {
-                    estado = 3;
-                }else if(c=='('||c=='['||c=='{'||c=='}'||c==']'||c==')'||c==','||c==';'||c=='~') {
+                if(c=='>') estado=1;
+                else if(c=='<') estado=2;
+                else if(c=='+'||c=='%'||c=='@'||c=='&'||c=='|'||c=='='||c=='^'||c==':') estado = 6;
+                else if(c=='-') estado = 3;
+                else if(c=='('||c=='['||c=='{'||c=='}'||c==']'||c==')'||c==','||c==';'||c=='~') {
                     aceptar(componente);
                     aceptadoOperador=1;
-                }else if(c=='/') {
-                    estado = 4;
-                }else if(c=='*') {
-                    estado = 5;
-                }
+                }else if(c=='/') estado = 4;
+                else if(c=='*') estado = 5;
                 break;
 
             case 1:
                 c=siguienteCaracter();
-                if(c=='>'){
-                    estado=6;
-                }else if(c=='='){
+                if(c=='>') estado=6;
+                else if(c=='='){
                     aceptar(componente);
                     aceptadoOperador=1;
                 }else{
@@ -547,13 +414,11 @@ void automataOperadores(char c, token *componente){
 
             case 2:
                 c=siguienteCaracter();
-                if(c=='<'){
-                    estado=6;
-                }else if(c=='='){
+                if(c=='<') estado=6;
+                else if(c=='='){
                     aceptar(componente);
                     aceptadoOperador=1;
                 }else{
-                    //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
                     retrocederCaracter();
                     aceptar(componente);
                     aceptadoOperador=1;
@@ -566,7 +431,6 @@ void automataOperadores(char c, token *componente){
                     aceptar(componente);
                     aceptadoOperador=1;
                 }else{
-                    //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
                     retrocederCaracter();
                     aceptar(componente);
                     aceptadoOperador=1;
@@ -575,13 +439,11 @@ void automataOperadores(char c, token *componente){
 
             case 4:
                 c=siguienteCaracter();
-                if(c=='/'){
-                    estado=6;
-                }else if(c=='='){
+                if(c=='/') estado=6;
+                else if(c=='='){
                     aceptar(componente);
                     aceptadoOperador=1;
                 }else{
-                    //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
                     retrocederCaracter();
                     aceptar(componente);
                     aceptadoOperador=1;
@@ -590,13 +452,11 @@ void automataOperadores(char c, token *componente){
 
             case 5:
                 c=siguienteCaracter();
-                if(c=='*'){
-                    estado=6;
-                }else if(c=='='){
+                if(c=='*') estado=6;
+                else if(c=='='){
                     aceptar(componente);
                     aceptadoOperador=1;
                 }else{
-                    //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
                     retrocederCaracter();
                     aceptar(componente);
                     aceptadoOperador=1;
@@ -605,12 +465,10 @@ void automataOperadores(char c, token *componente){
 
             case 6:
                 c=siguienteCaracter();
-
                 if(c=='='){
                     aceptar(componente);
                     aceptadoOperador=1;
                 }else{
-                    //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
                     retrocederCaracter();
                     aceptar(componente);
                     aceptadoOperador=1;
@@ -618,104 +476,47 @@ void automataOperadores(char c, token *componente){
                 break;
         }
     }
-
-    /*Una vez tenemos el lexema, lo que tenemos que conseguir es su número correspondiente
-     * En caso de tratarse de un lexema de un solo caracter, su número será su propio valor ascii
+    /*Una vez tenemos el lexema, lo que tenemos que conseguir es su número correspondiente.
+     * En caso de tratarse de un lexema de un solo caracter, su número será su propio valor ascii.
      * En caso de ser compuesto, tendremos que comparar el lexema con los posibles operadores y delimitadores compuestos y obtener su correspondiente valor en definiciones.h*/
 
-    //Si el buffer tiene un elemento pasamos ascii, si no comparamos las posibilidades
-    //Para saber si tiene un solo elemento usamos strlen() que devuelve los elementos del buffer si en el caracter nulo '\0'
-    if (strlen(componente->lexema)==1){
-        componente->numToken=(int)componente->lexema[0];
-
-    }else{
+    //Si el buffer tiene un elemento pasamos ascii, si no comparamos las posibilidades.
+    //Para saber si tiene un solo elemento usamos strlen() que devuelve los elementos del buffer sin en el caracter nulo '\0'.
+    if (strlen(componente->lexema)==1) componente->numToken=(int)componente->lexema[0];
+    else{
         //El lexema esta formado por más de dos caracteres, miramos las posibilidades
-        if(strcmp(componente->lexema,"**")==0){
-            componente->numToken=POTENCIA;
-        }
-        else if(strcmp(componente->lexema,"//")==0){
-            componente->numToken=DIVISION_ENTERA;
-        }
-        else if(strcmp(componente->lexema,"<<")==0){
-            componente->numToken=DESPLAZA_IZQUIERDA;
-        }
-        else if(strcmp(componente->lexema,">>")==0){
-            componente->numToken=DESPLAZA_DERECHA;
-        }
-        else if(strcmp(componente->lexema,":=")==0){
-            componente->numToken=DOS_PUNTOS_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"<=")==0){
-            componente->numToken=MENOR_IGUAL;
-        }
-        else if(strcmp(componente->lexema,">=")==0){
-            componente->numToken=MAYOR_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"==")==0){
-            componente->numToken=IGUAL_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"!=")==0){
-            componente->numToken=EXCLAMACION_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"->")==0){
-            componente->numToken=FLECHA;
-        }
-        else if(strcmp(componente->lexema,"+=")==0){
-            componente->numToken=MAS_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"-=")==0){
-            componente->numToken=MENOS_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"*=")==0){
-            componente->numToken=POR_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"/=")==0){
-            componente->numToken=DIVIDIDO_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"//=")==0){
-            componente->numToken=DIVISION_ENTERA_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"%=")==0){
-            componente->numToken=MODULO_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"@=")==0){
-            componente->numToken=ARROBA_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"&=")==0){
-            componente->numToken=AND_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"|=")==0){
-            componente->numToken=OR_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"^=")==0){
-            componente->numToken=XOR_BIT_IGUAL;
-        }
-        else if(strcmp(componente->lexema,">>=")==0){
-            componente->numToken=DESPLAZA_DERECHA_IGUAL;
-        }
-        else if(strcmp(componente->lexema,"<<=")==0){
-            componente->numToken=DESPLAZA_IZQUIERDA_IGUAL;
-        }
-        else{
-            componente->numToken=POTENCIA_IGUAL;
-        }
-
+        if(strcmp(componente->lexema,"**")==0) componente->numToken=POTENCIA;
+        else if(strcmp(componente->lexema,"//")==0) componente->numToken=DIVISION_ENTERA;
+        else if(strcmp(componente->lexema,"<<")==0) componente->numToken=DESPLAZA_IZQUIERDA;
+        else if(strcmp(componente->lexema,">>")==0) componente->numToken=DESPLAZA_DERECHA;
+        else if(strcmp(componente->lexema,":=")==0) componente->numToken=DOS_PUNTOS_IGUAL;
+        else if(strcmp(componente->lexema,"<=")==0) componente->numToken=MENOR_IGUAL;
+        else if(strcmp(componente->lexema,">=")==0) componente->numToken=MAYOR_IGUAL;
+        else if(strcmp(componente->lexema,"==")==0) componente->numToken=IGUAL_IGUAL;
+        else if(strcmp(componente->lexema,"!=")==0) componente->numToken=EXCLAMACION_IGUAL;
+        else if(strcmp(componente->lexema,"->")==0) componente->numToken=FLECHA;
+        else if(strcmp(componente->lexema,"+=")==0) componente->numToken=MAS_IGUAL;
+        else if(strcmp(componente->lexema,"-=")==0) componente->numToken=MENOS_IGUAL;
+        else if(strcmp(componente->lexema,"*=")==0) componente->numToken=POR_IGUAL;
+        else if(strcmp(componente->lexema,"/=")==0) componente->numToken=DIVIDIDO_IGUAL;
+        else if(strcmp(componente->lexema,"//=")==0) componente->numToken=DIVISION_ENTERA_IGUAL;
+        else if(strcmp(componente->lexema,"%=")==0) componente->numToken=MODULO_IGUAL;
+        else if(strcmp(componente->lexema,"@=")==0) componente->numToken=ARROBA_IGUAL;
+        else if(strcmp(componente->lexema,"&=")==0) componente->numToken=AND_IGUAL;
+        else if(strcmp(componente->lexema,"|=")==0) componente->numToken=OR_IGUAL;
+        else if(strcmp(componente->lexema,"^=")==0) componente->numToken=XOR_BIT_IGUAL;
+        else if(strcmp(componente->lexema,">>=")==0) componente->numToken=DESPLAZA_DERECHA_IGUAL;
+        else if(strcmp(componente->lexema,"<<=")==0) componente->numToken=DESPLAZA_IZQUIERDA_IGUAL;
+        else componente->numToken=POTENCIA_IGUAL;
     }
-
 }
 
 //Autómata que descarta los comentarios de una linea
 void automataComentariosLinea(char c){
-
     c=siguienteCaracter();
-
-    while((c)!='\n'){
-        c=siguienteCaracter();
-    }
-
+    while((c)!='\n') c=siguienteCaracter(); //Procesamos todos los caracteres hasta encontrar un \n que nos indique el final del comentario de una línea
     retrocederCaracter(); //Retrocedemos el '\n'
-    //Como no nos interesa hacer un componente lexico de un comentario omitimos el lexema
-    omitirLexema();
+    omitirLexema();//Como no nos interesa hacer un componente lexico de un comentario omitimos el lexema
 }
 
 //Autómata que acepta los distintos literales posibles de Python
@@ -727,58 +528,42 @@ void automataLiterales(char c, token *componente){
     while(aceptadoLiterales==0){
         switch (estado) {
             case 0:
-                if(c=='"'){
-                    estado=1;
-                }else{
-                    //Si no es comilla doble tiene que ser obligatoriamente comilla simple
-                    estado=8;
-                }
+                if(c=='"') estado=1;
+                else estado=8;//Si no es comilla doble tiene que ser obligatoriamente comilla simple
                 break;
+
             case 1:
                 c=siguienteCaracter();
-                if(c=='"'){
-                    estado=2;
-                }else{
-                    estado=7;
-                }
+                if(c=='"') estado=2;
+                else estado=7;
                 break;
 
             case 2:
                 c=siguienteCaracter();
-                if(c=='"'){
-                    estado=3;
-                }else{
+                if(c=='"') estado=3;
+                else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=LITERAL;
-                    aceptadoLiterales=1;
+                    aceptarLexema(componente,LITERAL,&aceptadoLiterales);
                 }
                 break;
 
             case 3:
                 c=siguienteCaracter();
-                if(c!='"'){
-                    estado=4;
-                }else{
-                    //Caso de tener un string literal multilinea vacío de comilla doble
-                    estado=5;
-                }
+                if(c!='"') estado=4;
+                else estado=5;//Caso de tener un string literal multilinea vacío de comilla doble
                 break;
 
             case 4:
                 c=siguienteCaracter();
-                while(c!='"'){
-                    c=siguienteCaracter();
-                }
+                while(c!='"') c=siguienteCaracter();
                 //Una vez que hemos salido del bucle es porque hemos recibido una doble comilla "
                 estado=5;
                 break;
 
             case 5:
                 c=siguienteCaracter();
-                if(c=='"'){
-                    estado=6;
-                }else{
+                if(c=='"') estado=6;
+                else{
                     retrocederCaracter();
                     aceptar(componente);
                     componente->numToken=LITERAL;
@@ -794,74 +579,52 @@ void automataLiterales(char c, token *componente){
                     //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
                 }else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=LITERAL;
-                    aceptadoLiterales=1;
+                    aceptarLexema(componente,LITERAL,&aceptadoLiterales);
                 }
                 break;
 
             case 7:
                 c=siguienteCaracter();
-                while(c!='"'){
-                    c=siguienteCaracter();
-                }
+                while(c!='"') c=siguienteCaracter();
                 //Una vez que hemos salido del bucle es porque hemos recibido una doble comilla " y se cierra el String literal de una linea -> "Hola que tal?"
-                aceptar(componente);
-                componente->numToken=LITERAL;
-                aceptadoLiterales=1;
+                aceptarLexema(componente,LITERAL,&aceptadoLiterales);
                 //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
                 break;
 
             case 8:
                 c=siguienteCaracter();
-                if(c==39){
-                    estado=9;
-                }else{
-                    //Estamos ante el caso de una abertura de string literal de una linea de simple comilla -> 'H
-                    estado=14;
-                }
+                if(c==39) estado=9;
+                else estado=14;//Estamos ante el caso de una abertura de string literal de una linea de simple comilla -> 'H
                 break;
 
             case 9:
                 c=siguienteCaracter();
-                if(c==39){
-                    estado=10;
-                }else{
+                if(c==39) estado=10;
+                else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=LITERAL;
-                    aceptadoLiterales=1;
+                    aceptarLexema(componente,LITERAL,&aceptadoLiterales);
                 }
                 break;
 
             case 10:
                 c=siguienteCaracter();
-                if(c!=39){
-                    estado=11;
-                }else{
-                    //Caso de tener un string literal multilinea vacío de comilla simple
-                    estado=12;
-                }
+                if(c!=39) estado=11;
+                else estado=12;//Caso de tener un string literal multilinea vacío de comilla simple
                 break;
 
             case 11:
                 c=siguienteCaracter();
-                while(c!=39){
-                    c=siguienteCaracter();
-                }
+                while(c!=39) c=siguienteCaracter();
                 //Una vez que hemos salido del bucle es porque hemos recibido una doble simple '
                 estado=12;
                 break;
 
             case 12:
                 c=siguienteCaracter();
-                if(c==39){
-                    estado=13;
-                }else{
+                if(c==39) estado=13;
+                else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=LITERAL;
-                    aceptadoLiterales=1;
+                    aceptarLexema(componente,LITERAL,&aceptadoLiterales);
                 }
                 break;
 
@@ -873,26 +636,19 @@ void automataLiterales(char c, token *componente){
                     //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
                 }else{
                     retrocederCaracter();
-                    aceptar(componente);
-                    componente->numToken=LITERAL;
-                    aceptadoLiterales=1;
+                    aceptarLexema(componente,LITERAL,&aceptadoLiterales);
                 }
                 break;
 
             case 14:
                 c=siguienteCaracter();
-                while(c!=39){
-                    c=siguienteCaracter();
-                }
+                while(c!=39) c=siguienteCaracter();
                 //Una vez que hemos salido del bucle es porque hemos recibido una doble comilla " y se cierra el String literal de una linea -> 'Hola que tal?'
-                aceptar(componente);
-                componente->numToken=LITERAL;
-                aceptadoLiterales=1;
+                aceptarLexema(componente,LITERAL,&aceptadoLiterales);
                 //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
                 break;
         }
     }
-
 }
 
 
