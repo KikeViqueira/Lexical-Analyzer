@@ -1,4 +1,5 @@
-#include <stdio.h>
+#include <malloc.h>
+#include <string.h>
 #include "TS.h"
 #include "definiciones.h"
 #include "abb.h"
@@ -53,6 +54,9 @@ void initTS() {
 
     //Insertamos en el árbol las palabras reservadas, cada una en un nodo distinto del árbol
     for (int i=0; i<tamanho; i++){
+        char *reservada = (char*) malloc(strlen(palabras_reservadas[i].lexema)+1);
+        strcpy(reservada, palabras_reservadas[i].lexema);
+        palabras_reservadas[i].lexema = reservada;
         insertarElementoAbb(&arbol,palabras_reservadas[i]);
     }
 
@@ -61,27 +65,30 @@ void initTS() {
 
 }
 
-int buscarLexema(char *lexema_a_buscar){
+void buscarLexema(token *componente){
+    //Hacemos una copia del nodo, así aunque se libere la memoria del token en otra parte del código, en el árbol seguiremos con su información
     TIPOELEMENTOABB nodoAux;
-    nodoAux.lexema=NULL;
     nodoAux.numToken=0;
 
     //Tenemos que buscar el nodo con el identificador o clave lexema, si no está se llamará a insertarLexema()
-    buscarNodoAbb(arbol, lexema_a_buscar, &nodoAux);
+    buscarNodoAbb(arbol, componente->lexema, &nodoAux);
 
     if(nodoAux.numToken==0){
         /*Si se entra aqui es porque la función buscarnodo no ha encontrado ningún nodo cuya clave coincida con el lexema
          que se ha pasado como clave, en el v¡caso de no entrar en el if ya hemos encontrado el nodo y devolvemos número correspondiente al lexema*/
-        insertarLexema(lexema_a_buscar, &nodoAux);
+        insertarLexema(componente->lexema, &nodoAux);
+
     }
 
-    //Devolvemos el número correspondiente al token con el lexema que se ha pasado por argumentos
-    return nodoAux.numToken;
+    componente->numToken=nodoAux.numToken;
+
 }
 
 
 void insertarLexema(char *lexema_a_insertar, TIPOELEMENTOABB *nodo){
-    nodo->lexema=lexema_a_insertar;
+    //tenemos que hacer una copia del lexema cuando lo metamos en la TS, porque si no cuando el sintáctico hago un free del token este se borrará también de la tabla de símbolos
+    nodo->lexema=(char*) malloc(strlen(lexema_a_insertar)+1);
+    strcpy(nodo->lexema,lexema_a_insertar);
     nodo->numToken=ID;
 
     //Ahora que nodo tiene la información necesaria, metemos el elemento en el árbol

@@ -48,7 +48,7 @@ void destruirAbb(TABB *A) {
     if (*A != NULL) {
         destruirAbb(&(*A)->izq);
         destruirAbb(&(*A)->der);
-        _destruir_elem(&((*A)->info));
+        _destruir_elem(&(*A)->info);
         free(*A);
         *A = NULL;
     }

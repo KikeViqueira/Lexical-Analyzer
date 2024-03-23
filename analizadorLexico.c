@@ -13,8 +13,15 @@ void automataAlphaNumerico( char c,token *componente);
 void automataNumerico(char c, token *componente);
 void automataFlotantes(char c,int estadoCorrespondiente, token *componente);
 void automataOperadores(char c, token *componente);
-void automataComentariosLinea(char c, token *componente);
+void automataComentariosLinea(char c);
 void automataLiterales(char c, token *componente);
+
+//Contador que nos indicará en que línea se ha producido el error
+int errorLinea=0;
+
+//Flag especial para saber si el lexema a devolver es un punto a secas "." o un número flotante que comienza por punto .673672
+int punto=0;
+
 
 token* siguienteToken() {
     token *componente = (token*) malloc(sizeof(token));
@@ -32,7 +39,7 @@ token* siguienteToken() {
                 if(isalpha(c) || c=='_'){//Si es un caracter alfabético o una _ llamamos al autómata alphanumérico
                     estado=1;
                 }
-                else if(isdigit(c) || c=='.'){//Si es número o . llamamos al autómata numérico
+                else if(isdigit(c) || c=='.'){//Si es número o . llamamos al autómata numérico (Vamos a tener en cuenta el flag de si es punto o número flotante
                     estado=2;
                 }else if(c=='\n'){
                     estado=3;
@@ -45,7 +52,13 @@ token* siguienteToken() {
                 }
                 else if(c=='"'|c==39){
                     automataLiterales(c, componente);
-                    aceptado=1;
+                    if(componente->lexema==NULL){
+                        //Si el lexema del componente vale NULL quiere decir que el lexema que ha procesado el autómata es un comentario y no ha creado un componente léxico, se ha omitido el lexema
+                        c=siguienteCaracter();//Comenzamos a procesar el siguiente lexema
+                    }else{
+                        aceptado=1;
+                    }
+
                 }
                 else{
                     estado=4;
@@ -58,21 +71,23 @@ token* siguienteToken() {
                 if(strlen(componente->lexema)==1){
                     componente->numToken=(int)componente->lexema[0];
                 }else{
-                    componente->numToken=buscarLexema(componente->lexema);
+                    buscarLexema(componente);
                 }
                 aceptado=1;
                 break;
 
             case 2:
                 automataNumerico(c,componente);
-                if(c=='.'){//Si se ejecuta este if, estamos en el caso de un punto a secas como lexema
+                if(punto==1){//Si se ejecuta este if, estamos en el caso de un punto a secas como lexema y no un número flotante que empieza por punto
                     aceptar(componente);
                     componente->numToken=(int)c;
+                    punto=0;//Hacemos un reset de el flag
                 }
                 aceptado=1;
 
                 break;
             case 3:
+                errorLinea++;
                 aceptar(componente);
                 componente->numToken=(int)c;
                 aceptado=1;
@@ -83,9 +98,10 @@ token* siguienteToken() {
                 break;
 
             case 5:
-                automataComentariosLinea(c,componente);
+                automataComentariosLinea(c);
                 //Pedimos el siguiente caracter y nos vamos al estado cero para que decida que autómata tiene que hacerse cargo de procesar el lexema entrante
-                aceptado=0;
+                c=siguienteCaracter();
+                estado=0;
                 break;
             default:
                 reportarError(LEXEMA_INVALIDO);
@@ -373,8 +389,6 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
     while (aceptadoFlotante==0){
         switch (estadoCorrespondiente) {
 
-            //CREO QUE EL CERO Y EL UNO SE PUEDEN UNIR EN UNO YA QUE SABEMOS A DONDE VOLVER YA QUE DEPENDE DE DONDE SE HAYA LLAMADO EL SUBAUTOMATA
-
             case 0:
                 //llegamos siempre con un punto (Caso para aceptar numeros del tipo .2)
                 c=siguienteCaracter();
@@ -387,6 +401,7 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente){
                 }
                 else{
                     //en caso de recibir otra cosa tenemos que salir del autómata de números ya que el punto se enviará de manera individual
+                    punto=1;//Activamos el flag para que el analizador léxico sepa que el lexema que vamos a aceptar es un punto solo
                     retrocederCaracter();
                     aceptadoFlotante=1;
                 }
@@ -506,6 +521,7 @@ void automataOperadores(char c, token *componente){
                 }else if(c=='-') {
                     estado = 3;
                 }else if(c=='('||c=='['||c=='{'||c=='}'||c==']'||c==')'||c==','||c==';'||c=='~') {
+                    aceptar(componente);
                     aceptadoOperador=1;
                 }else if(c=='/') {
                     estado = 4;
@@ -519,6 +535,7 @@ void automataOperadores(char c, token *componente){
                 if(c=='>'){
                     estado=6;
                 }else if(c=='='){
+                    aceptar(componente);
                     aceptadoOperador=1;
                 }else{
                     //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
@@ -533,6 +550,7 @@ void automataOperadores(char c, token *componente){
                 if(c=='<'){
                     estado=6;
                 }else if(c=='='){
+                    aceptar(componente);
                     aceptadoOperador=1;
                 }else{
                     //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
@@ -545,6 +563,7 @@ void automataOperadores(char c, token *componente){
             case 3:
                 c=siguienteCaracter();
                 if(c=='=' || c=='>'){
+                    aceptar(componente);
                     aceptadoOperador=1;
                 }else{
                     //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
@@ -559,6 +578,7 @@ void automataOperadores(char c, token *componente){
                 if(c=='/'){
                     estado=6;
                 }else if(c=='='){
+                    aceptar(componente);
                     aceptadoOperador=1;
                 }else{
                     //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
@@ -573,6 +593,7 @@ void automataOperadores(char c, token *componente){
                 if(c=='*'){
                     estado=6;
                 }else if(c=='='){
+                    aceptar(componente);
                     aceptadoOperador=1;
                 }else{
                     //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
@@ -586,6 +607,7 @@ void automataOperadores(char c, token *componente){
                 c=siguienteCaracter();
 
                 if(c=='='){
+                    aceptar(componente);
                     aceptadoOperador=1;
                 }else{
                     //Se rompe el lexema por lo que retrocedemos una posición y aceptamos
@@ -683,7 +705,7 @@ void automataOperadores(char c, token *componente){
 }
 
 //Autómata que descarta los comentarios de una linea
-void automataComentariosLinea(char c, token *componente){
+void automataComentariosLinea(char c){
 
     c=siguienteCaracter();
 
@@ -767,8 +789,7 @@ void automataLiterales(char c, token *componente){
             case 6:
                 c=siguienteCaracter();
                 if(c=='"'){
-                    aceptar(componente);
-                    componente->numToken=LITERAL;
+                    omitirLexema();//Omitimos el lexema ya que es considerado un comentario multilínea
                     aceptadoLiterales=1;
                     //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
                 }else{
@@ -847,8 +868,7 @@ void automataLiterales(char c, token *componente){
             case 13:
                 c=siguienteCaracter();
                 if(c==39){
-                    aceptar(componente);
-                    componente->numToken=LITERAL;
+                    omitirLexema();
                     aceptadoLiterales=1;
                     //Aceptamos el lexema sin retrocederCaracter ya que no hace falta
                 }else{
