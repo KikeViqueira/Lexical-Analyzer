@@ -7,13 +7,10 @@ typedef struct {
     int numToken;
 } token;
 
-// Función para inicializar el analizador léxico
-//void initLexico(char *archivo);
-
 // Función para obtener el siguiente token y pasarselo al analizador sintáctico
-token* siguienteToken();
+token siguienteToken();
 
-// Función para finalizar el analizador léxico
-//void finalizarLexico();
+// Función para finalizar el analizador léxico y liberar la memoria asociada
+void finalizarLexico();
 
 #endif

@@ -7,6 +7,12 @@
 #include "TS.h"
 #include "definiciones.h"
 #include "errores.h"
+
+int errorLinea=1;//Contador que nos indicará en que línea se ha producido el error
+int punto=0;//Flag especial para saber si el lexema a devolver es un punto a secas "." o un número flotante que comienza por punto .673672
+int retornoCarro=0;//Flag que nos indicará cuando un \n se devuelve como componente al analizador sintáctico
+token componente;
+
 // Autómatas
 void automataAlphaNumerico( char c,token *componente);
 void automataNumerico(char c, token *componente);
@@ -14,10 +20,6 @@ void automataFlotantes(char c,int estadoCorrespondiente, token *componente);
 void automataOperadores(char c, token *componente);
 void automataComentariosLinea(char c);
 void automataLiterales(char c, token *componente);
-//Contador que nos indicará en que línea se ha producido el error
-int errorLinea=1;
-//Flag especial para saber si el lexema a devolver es un punto a secas "." o un número flotante que comienza por punto .673672
-int punto=0;
 
 //Función para modularizar el código y no repetir tantas líneas
 void aceptarLexema(token *componente,int tipoLexema, int *flagSwitch){
@@ -32,11 +34,21 @@ void lexemaMalFormado(int tipoError){
     lineaError(errorLinea);
 }
 
-token* siguienteToken() {
-    token *componente = (token*) malloc(sizeof(token));
-    componente->lexema=NULL;
-    componente->numToken=-1;
-    int indice =0;
+void liberarComponente(){
+    if(componente.lexema!=NULL){
+        free(componente.lexema);
+        componente.lexema=NULL;
+        componente.numToken=-1;
+    }
+}
+
+void finalizarLexico(){
+    liberarComponente();
+}
+
+token siguienteToken() {
+    //Liberamos la memoria del componente para asi poder guardar los nuevos lexemas que se acepten y reducir el número de mallocs
+    liberarComponente();
     char c;
     int estado = 0;
     int aceptado=0;
@@ -59,26 +71,36 @@ token* siguienteToken() {
                 break;
 
             case 1:
-                automataAlphaNumerico(c,componente);
+                automataAlphaNumerico(c,&componente);
                 //tenemos que buscar el correspondiente número del lexema en la TS, que lo devolverá la función de buscarLexema(), si el lexema está compuesto por mas de un caracter
-                if(strlen(componente->lexema)==1) componente->numToken=(int)componente->lexema[0];
-                else buscarLexema(componente);
+                if(strlen(componente.lexema)==1) componente.numToken=(int)componente.lexema[0];
+                else buscarLexema(&componente);
                 aceptado=1;
+                retornoCarro=1;
                 break;
 
             case 2:
-                automataNumerico(c,componente);
+                automataNumerico(c,&componente);
                 if(punto==1){//Si se ejecuta este if, estamos en el caso de un punto a secas como lexema y no un número flotante que empieza por punto
-                    aceptar(componente,errorLinea);
-                    componente->numToken=(int)c;
+                    aceptar(&componente,errorLinea);
+                    componente.numToken=(int)c;
                     punto=0;//Hacemos un reset de el flag
                 }
                 aceptado=1;
+                retornoCarro=1;
                 break;
 
             case 3:
                 errorLinea++;
-                aceptarLexema(componente,(int)c,&aceptado);
+                if(retornoCarro==1){//Flag está activado por lo que este \n tiene valor léxico
+                    aceptarLexema(&componente,(int)c,&aceptado);
+                    retornoCarro=0;//Desactivamos el flag
+                }else {
+                    omitirLexema();//En caso contrario omitimos el lexema ya que no nos interesa devolverlo
+                    c=siguienteCaracter();//Obtenemos el siguiente caracter y asi poder procesar un nuevo lexema
+                    estado=0;//Volvemos al estado 0 para que decida a que autómata se llamará
+                }
+                //aceptarLexema(&componente,(int)c,&aceptado);
                 break;
 
             case 4:
@@ -89,17 +111,21 @@ token* siguienteToken() {
                 break;
 
             case 5:
-                automataLiterales(c, componente);
-                if(componente->lexema==NULL){
+                automataLiterales(c, &componente);
+                if(componente.lexema==NULL){
                     //Si el lexema del componente vale NULL quiere decir que el lexema que ha procesado el autómata es un comentario y no ha creado un componente léxico, se ha omitido el lexema
                     c=siguienteCaracter();//Comenzamos a procesar el siguiente lexema
                     estado=0;//Volvemos al case 0 que decidirá a donde tenemos que ir
                 }
-                else aceptado=1;
+                else{
+                    retornoCarro=1;
+                    aceptado=1;
+                }
                 break;
 
             case 6:
-                automataOperadores(c,componente);
+                automataOperadores(c,&componente);
+                retornoCarro=1;
                 aceptado=1;
                 break;
 
@@ -110,9 +136,10 @@ token* siguienteToken() {
     }
     //Caso de que se ha alcanzado el final del fichero
     if(c==EOF){
+        //Una vez llegamos al final del fichero pasado por argumentos, finalizamos el sistema de entrada y liberamos la memoria que haya utilizado
         finalizarSistemaEntrada();
-        componente->lexema=NULL;
-        componente->numToken=EOF;
+        componente.lexema=NULL;
+        componente.numToken=EOF;
     }
     //Le mandamos el componente->léxico al analizador sintáctico
     return componente;

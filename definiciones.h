@@ -42,7 +42,6 @@
 #define RAISE 307
 #define YIELD 308
 
-//Valor parapalabras que no se han encontrado en la tabla
 #define MAGENTA "\x1b[35m" //Serán representadas mediante el color magenta
 #define ID 309
 
