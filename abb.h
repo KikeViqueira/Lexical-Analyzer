@@ -50,19 +50,6 @@ TABB izqAbb(TABB A);
  * @param A - Arbol original
  */
 TABB derAbb(TABB A);
-/**
- * Recupera la informacion de la celda de la raiz del arbol
- * @param A
- * @param E Puntero al nodo que apuntara a la informacion
- */
-void leerElementoAbb(TABB A, TIPOELEMENTOABB *E);
-
-/**
- * Comprueba si el elemento <E> existe en el arbol <A>
- * @param A
- * @param E
- */
-unsigned esMiembroAbb(TABB A, TIPOELEMENTOABB E);
 
 /**
  * Busca un nodo con clave <cl> en el arbol y, si existe
@@ -88,12 +75,6 @@ void insertarElementoAbb(TABB *A, TIPOELEMENTOABB E);
  * @param E
  */
 void suprimirElementoAbb(TABB *A,TIPOELEMENTOABB E);
-/**
- * Busca el nodo con clave la del nodo y lo modifica.
- * @param A
- * @param nodo
- */
-void modificarElementoAbb(TABB A, TIPOELEMENTOABB nodo);
 
 /**
  * Imprime todos los nodos existentes en el arbol

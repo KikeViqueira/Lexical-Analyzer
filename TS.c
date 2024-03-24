@@ -4,6 +4,9 @@
 #include "definiciones.h"
 #include "abb.h"
 
+#define GREEN   "\x1b[32m"
+#define RESET   "\x1b[0m"
+
 TABB arbol;
 
 void initTS() {
@@ -61,7 +64,10 @@ void initTS() {
     }
 
     //Imprimimos el árbol para ver si se ha creado de manera correcta
+    printf(GREEN"\nCONTENIDO INICIAL DE NUESTRA TABLA DE SIMBOLOS: \n"RESET);
+    printf(GREEN"----------------------------------------------------------\n"RESET);
     imprimir(arbol);
+    printf("\n");
 
 }
 
@@ -96,6 +102,8 @@ void insertarLexema(char *lexema_a_insertar, TIPOELEMENTOABB *nodo){
 }
 
 void imprimirTablaSimbolos(){
+    printf(GREEN"\nCONTENIDO DE NUESTRA TABLA DE SIMBOLOS DESPUES DE PROCESAR EL ARCHIVO: \n"RESET);
+    printf(GREEN"----------------------------------------------------------------------------\n"RESET);
     imprimir(arbol);
 }
 

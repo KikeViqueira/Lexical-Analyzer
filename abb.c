@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define GREEN "\x1b[32m"
+#define RESET "\x1b[0m"
 ///////////////////////// ESTRUCTURAS DE DATOS
 
 struct celda {
@@ -68,9 +70,6 @@ TABB derAbb(TABB A) {
     return A->der;
 }
 
-void leerElementoAbb(TABB A, TIPOELEMENTOABB *E) {
-    *E = A->info;
-}
 // Función privada para comparar las claves
 
 int _comparar_clave_elem(TIPOCLAVE cl, TIPOELEMENTOABB E) {
@@ -94,11 +93,6 @@ unsigned _es_miembro_clave(TABB A, TIPOCLAVE cl) {
     return _es_miembro_clave(izqAbb(A), cl);
 }
 
-//Funciones públicas
-
-unsigned esMiembroAbb(TABB A, TIPOELEMENTOABB E) {
-    return _es_miembro_clave(A, _clave_elem(&E));
-}
 
 void buscarNodoAbb(TABB A, TIPOCLAVE cl, TIPOELEMENTOABB *nodo) {
     if (esAbbVacio(A)) {
@@ -201,17 +195,10 @@ void _modificar(TABB A, TIPOCLAVE cl, TIPOELEMENTOABB nodo) {
 }
 
 
-/* Permite modificar el nodo extrayendo del mismo la clave */
-void modificarElementoAbb(TABB A, TIPOELEMENTOABB nodo) {
-    TIPOCLAVE cl = _clave_elem(&nodo);
-    _modificar(A, cl, nodo);
-
-}
-
 void imprimir(TABB A) {
     if (!esAbbVacio(A)) {
         imprimir(izqAbb(A));
-        printf("%d  |   %s\n",A->info.numToken, A->info.lexema);
+        printf(GREEN"%d  |   %s\n"RESET,A->info.numToken, A->info.lexema);
         imprimir(derAbb(A));
     }
 }

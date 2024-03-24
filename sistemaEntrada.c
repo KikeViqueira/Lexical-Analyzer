@@ -26,9 +26,6 @@ void initEntrada(char *archivo) {
     dobleCentinela.bufferA[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
     //Ponemos la bandera del siguiente bloque que se cargará
     dobleCentinela.bloque_cargar=1;
-    //Inicializamos el contador de caracteres
-    dobleCentinela.caracteresEnviados=0;
-
 }
 //Función que inicializa el bloque correspondiente que se le pasa por comandos, guardando en su correspondiente buffer el tamaño indicado del fichero de entrada
 void cargarBloque(){
@@ -71,7 +68,6 @@ void cargarBloque(){
 //Función que le manda el siguiente caracter al analizador léxico
 char siguienteCaracter() {
     char c;
-
     if ((dobleCentinela.delantero == dobleCentinela.bufferA + TAM_BLOQUE -1) || (dobleCentinela.delantero == dobleCentinela.bufferB + TAM_BLOQUE -1)){//Si el puntero delantero está apuntando al EOF de alguno de los buffers llamamos a cargarBloque()
         cargarBloque();
     }
@@ -84,35 +80,19 @@ char siguienteCaracter() {
 }
 //Función para retroceder un caracter
 void retrocederCaracter() {
-    /*Tenemos que comprobar si el puntero delantero está al principio de uno de los buffers, porque en ese caso si retrocedemos tenemos que activar
-     una bandera para que no nos borre el contenido del último bloque que se ha cargado, ya que cuando volvamos a adelantar el delantero se cargaría de nuevo el bloque y perderíamos la información*/
-    if (dobleCentinela.delantero==dobleCentinela.bufferB){
-        //Si delantero apunta al principio del bufferB teneos que volver al último caracter antes del EOF del bufferA
-        dobleCentinela.delantero=dobleCentinela.bufferA+TAM_BLOQUE-2;
-        dobleCentinela.retroceso=1; //Activamos la flag de que vamos a retroceder y cuando volvamos al bloque del que hemos retrocedido no se cargue información, ya que existe información que aún no se ha procesado
-    }
-    else if(dobleCentinela.delantero==dobleCentinela.bufferA){
-        //Si delantero apunta al principio del bufferA teneos que volver al último caracter antes del EOF del bufferB
-        dobleCentinela.delantero=dobleCentinela.bufferB+TAM_BLOQUE-2;
-        dobleCentinela.retroceso=1;
-    }
-    else{
-        //Si no estamos en ninguno de los casos anteriores es seguro retroceder de caracter
-        dobleCentinela.delantero--;
-    }
-    //decrementamos el contador de caracteres enviados para aceptar el lexema
-    dobleCentinela.caracteresEnviados--;
+    dobleCentinela.delantero--;
 }
+
 void omitirCaracter(){
     //Igualamos la dirección de memoria de inicio con la de delantero, que ya estará apuntando al caracter siguiente a devolver
     dobleCentinela.inicio=dobleCentinela.delantero;
 }
+
 void omitirLexema(){
     dobleCentinela.inicio=dobleCentinela.delantero;
 }
-
 //Función que reserva la memoria necesaria al lexema del token y le introduce su correspondiente valor
-void aceptar(token *componente){
+void aceptar(token *componente, int linea){
 
     if(dobleCentinela.inicio==NULL){
         //Si inicio vale null es porque se ha cargado dos veces el bloque donde está inicio procesando el mismo lexema, y como es lógico se ha superado el tamaño de lexema
@@ -127,6 +107,7 @@ void aceptar(token *componente){
                 size_t longitudA = (TAM_BLOQUE - 1) - longitudB;//Tamaño lexema menos los caracteres que se han recogido en B
 
                 reportarError(SUPERA_TAMANHO);
+                lineaError(linea);//Indicamos en que línea del fichero fuente ha tenido lugar el lexema que ha superado el tamaño
 
                 componente->lexema=(char*)malloc(sizeof (char)*(TAM_BLOQUE));//Le pasamos directamente este valor ya que para la reserva hay que usar TAM_BLOQUE-1 + 1 por el caracter nulo
 
@@ -148,6 +129,7 @@ void aceptar(token *componente){
             }else{
                 size_t longitudB = (TAM_BLOQUE-1) - longitudA;
                 reportarError(SUPERA_TAMANHO);
+                lineaError(linea);
                 componente->lexema=(char*)malloc(sizeof (char)*(TAM_BLOQUE));
                 memcpy(componente->lexema, &dobleCentinela.bufferB[TAM_BLOQUE-1-longitudB],longitudB);
                 memcpy(componente->lexema+longitudB, dobleCentinela.bufferA, longitudA);
@@ -167,7 +149,6 @@ void aceptar(token *componente){
                  Para saber los elementos que tiene el lexema que se ha aceptado lo que haremos es restar la posición del puntero delantero menos la del inicio
                  Esto nos devuelve la cantidad de elementos desde la posición del puntero inicio (incluída) hasta la del delantero (no inluída), cuando ambos punteros están en una zona de memoria común**/
                 size_t longitudLexema= dobleCentinela.delantero - dobleCentinela.inicio;
-                printf("Tamanho del lexema aceptado: %zu\n",longitudLexema);
                 componente->lexema=(char*)malloc(sizeof (char)*(longitudLexema+1)); //Tenemos que reservar un sitio más para el caracter nulo
                 //copiamos la zona del buffer A al componente.lexema
                 memcpy(componente->lexema,dobleCentinela.inicio,longitudLexema);
@@ -180,11 +161,11 @@ void aceptar(token *componente){
                 size_t longitudA = (dobleCentinela.bufferA+TAM_BLOQUE-1) - dobleCentinela.inicio; //Devuelve los elementos desde el inicio incluído al EOF excluído
                 size_t longitudB = (dobleCentinela.delantero - dobleCentinela.bufferB); //Devuelve los elementos desde el inicio del bloque B hasta la pos anterior al puntero delantero
                 size_t longitudTotal = longitudA + longitudB;
-                printf("Tamanho del lexema aceptado: %zu\n",longitudTotal);
 
                 if(longitudTotal>TAM_BLOQUE-1){
                     //Se ha superado el tamanho establecido para los lexemas
                     reportarError(SUPERA_TAMANHO);
+                    lineaError(linea);
                     longitudA= (TAM_BLOQUE-1)-longitudB;
                     componente->lexema=(char*)malloc(sizeof (char)*(TAM_BLOQUE));
                     memcpy(componente->lexema, &dobleCentinela.bufferA[TAM_BLOQUE-1-longitudA],longitudA);
@@ -206,7 +187,7 @@ void aceptar(token *componente){
 
         }else{
             //Sabemos que inicio esta en el buffer B
-            if(dobleCentinela.delantero>=dobleCentinela.bufferB && dobleCentinela.delantero<=dobleCentinela.bufferB + TAM_BLOQUE - 1){
+            if(dobleCentinela.bloque_cargar==0){//El siguiente bloque que se va a cargar es el 0 por lo que sabemos que el puntero delantero está en el bufferB
                 size_t longitudLexema= dobleCentinela.delantero - dobleCentinela.inicio;
                 componente->lexema=(char*)malloc(sizeof (char)*(longitudLexema+1)); //Tenemos que reservar un sitio más para el caracter nulo
 
@@ -220,11 +201,11 @@ void aceptar(token *componente){
                 size_t longitudB = (dobleCentinela.bufferB+TAM_BLOQUE-1) - dobleCentinela.inicio;
                 size_t longitudA = (dobleCentinela.delantero - dobleCentinela.bufferA);
                 size_t longitudTotal = longitudA + longitudB;
-                printf("Tamanho del lexema aceptado: %zu\n",longitudTotal);
 
                 if(longitudTotal>TAM_BLOQUE-1){
                     //Se ha superado el tamaó establecido para los lexemas
                     reportarError(SUPERA_TAMANHO);
+                    lineaError(linea);
                     longitudB= (TAM_BLOQUE-1)-longitudA;
                     componente->lexema=(char*)malloc(sizeof (char)*(TAM_BLOQUE));
                     memcpy(componente->lexema, &dobleCentinela.bufferB[TAM_BLOQUE-1-longitudB],longitudB);

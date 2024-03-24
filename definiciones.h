@@ -1,7 +1,10 @@
 #ifndef DEFINICIONES_H
 #define DEFINICIONES_H
 
-// Palabras reservadas
+#define RESET   "\x1b[0m"
+
+#define RED     "\x1b[31m"
+// Palabras reservadas cuando el analizador sintáctico imprima los componentes en pantalla mostrará su número con color rojo
 #define IMPORT 273
 #define FROM 274
 #define AS 275
@@ -40,13 +43,18 @@
 #define YIELD 308
 
 //Valor parapalabras que no se han encontrado en la tabla
+#define MAGENTA "\x1b[35m" //Serán representadas mediante el color magenta
 #define ID 309
 
 //Tipo de número reconocido por el analizador léxico
+#define BLUE    "\x1b[34m"
 #define ENTERO 310
+#define GREEN   "\x1b[32m"
 #define FLOTANTE 311
-#define IMAGINARIO 312
+#define IMAGINARIO 312 //Los números imaginarios se mostrarán en gris (default) aunque en wilcoxon.py no hay
 
+//Delimitadores y operadores compuestos serán representados con el color amarillo
+#define YELLOW  "\x1b[33m"
 //Operadores compuestos
 #define POTENCIA 313
 #define DIVISION_ENTERA 314
@@ -57,7 +65,6 @@
 #define MAYOR_IGUAL 319
 #define IGUAL_IGUAL 320
 #define EXCLAMACION_IGUAL 321
-
 //Delimitadores compuestos
 #define FLECHA 322
 #define MAS_IGUAL 323
@@ -75,6 +82,7 @@
 #define POTENCIA_IGUAL 335
 
 //Literales
+#define CYAN    "\x1b[36m" //Se mostrarán con el color Cyan
 #define LITERAL 337
 
 

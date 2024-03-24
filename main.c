@@ -1,33 +1,17 @@
 #include "analizadorSintactico.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include "sistemaEntrada.h"
-
+#include "errores.h"
 #include "TS.h"
 
 int main(int argc, char **argv) {
-    // Verificamos si el archivo se ha pasado por argumentos
-    if (argc != 2) {
-        printf("Uso incorrecto del programa\n Uso: %s <nombre archivo>\n", argv[0]);
+    if (argc != 2) {// Verificamos si el archivo se ha pasado por argumentos
+        reportarError(ERROR_FICHERO);
         exit(EXIT_FAILURE);
     }
-
-    /*Tenemos que incializar primero la tabla de símbolos y después darle el control de ejecución al analizador sintáctico,
-    este una vez acabe de pedir los distintos tokens al analizador léxico e imprimirlos por pantalla, le devolverá el control al main.c
-    para que termine la ejecución del programa y su correspondiente liberación de memoria.*/
-
-    // Inicializamos la tabla de símbolos
-    initTS();
-
-    //llamamos al sistema de entrada
-    initEntrada(argv[1]);
-
-    // Llamamos al analizador sintáctico
-    startAnalizadorSintactico();
-
-    //Imprimir otra vez tabla de simbolos, para ver como ha cambiado
-    imprimirTablaSimbolos();
-
-    //Liberamos la memoria usada por la tabla de simbolos
-    liberarTS();
+    initTS();// Inicializamos la tabla de símbolos
+    initEntrada(argv[1]);//llamamos al sistema de entrada
+    startAnalizadorSintactico();// Llamamos al analizador sintáctico
+    imprimirTablaSimbolos();//Imprimir otra vez tabla de simbolos, para ver como ha cambiado
+    liberarTS();//Liberamos la memoria usada por la tabla de simbolos
 }
