@@ -26,13 +26,16 @@ char siguienteCaracter();
 void retrocederCaracter();
 
 //Función que metera el lexema en el token, esta función es llamada por el léxico
-void aceptar(token *componente, int linea);
+void aceptar(token *componente);
 
 //Funcion para saltar un caracter y no analizarlo
 void omitirCaracter();
 
 ////Funcion para saltar un lexema que no queremos procesar
 void omitirLexema();
+
+void lexemaMalFormado(int tipoError);
+
 // Funcion para finalizar el sistema de entrada y liberar sus recursos
 void finalizarSistemaEntrada();
 

@@ -8,6 +8,9 @@ void cargarBloque();
 
 FILE *codigoFuente;
 SistemaDobleCentinela dobleCentinela;
+int errorLinea=1;//Contador que nos indicará en que línea se ha producido el error
+int leerLinea=1;//Flag que nos indicará cuando estamos leyendo un \n válido y no uno repetido
+
 // Funcion que inicializa el sistema de entrada y lee el archivo que se le ha pasado
 void initEntrada(char *archivo) {
 
@@ -48,7 +51,7 @@ void cargarBloque(){
             dobleCentinela.bufferA[caracteresLeidos] = EOF;//EOF correspondiente al final del archivo que estamos procesando
         }
     }
-    //Lo mismo que antes pero estando el inicio en el bufferB y bloque_cargar vale 1 por lo que el siguiente bloque a cargar es el 0 -> BufferA
+    //Lo mismo que antes pero estando en el bufferA y el siguiente bloque a cargar es el 1 -> BufferB
     else{
         if(dobleCentinela.inicio>=dobleCentinela.bufferB && dobleCentinela.inicio<=dobleCentinela.bufferB + TAM_BLOQUE - 1){
             dobleCentinela.inicio=NULL;
@@ -61,7 +64,7 @@ void cargarBloque(){
         dobleCentinela.bufferB[TAM_BLOQUE-1] = EOF; // Añadimos el caracter EOF al final del buffer para saber cuando tenemos que cambiar de bloque
         dobleCentinela.bloque_cargar=0;
         if(caracteresLeidos < TAM_BLOQUE-1) {
-            dobleCentinela.bufferA[caracteresLeidos] = EOF;
+            dobleCentinela.bufferB[caracteresLeidos] = EOF;
         }
     }
 }
@@ -76,11 +79,17 @@ char siguienteCaracter() {
     c=*dobleCentinela.delantero;
     dobleCentinela.delantero++;//Aumentamos la direccion de memoria en 1 de manera segura
 
+    if(c=='\n' && leerLinea==1) errorLinea++;
+
+    //Si el flag leer estaba en cero y no contamos el \n como devuelto ya podemos poner el flag a 1 para que el siguiente \n si se cuente como linea
+    leerLinea=1;
+
     return c;
 }
 //Función para retroceder un caracter
 void retrocederCaracter() {
     dobleCentinela.delantero--;
+    if(*dobleCentinela.delantero=='\n') leerLinea=0; //Activamos el falg indicandole al sistema de entrada que cuando devuelva este \n en siguienteCaracter no lo tenga en cuenta como una linea del archivo
 }
 
 void omitirCaracter(){
@@ -91,8 +100,15 @@ void omitirCaracter(){
 void omitirLexema(){
     dobleCentinela.inicio=dobleCentinela.delantero;
 }
+
+//Función para informar de que un numero,operador o literal se ha formado de forma incorrecta pero se devolverá un componente léxico aceptando la parte correcta de este
+void lexemaMalFormado(int tipoError){
+    reportarError(tipoError);
+    lineaError(errorLinea);
+}
+
 //Función que reserva la memoria necesaria al lexema del token y le introduce su correspondiente valor
-void aceptar(token *componente, int linea){
+void aceptar(token *componente){
 
     if(dobleCentinela.inicio==NULL){
         //Si inicio vale null es porque se ha cargado dos veces el bloque donde está inicio procesando el mismo lexema, y como es lógico se ha superado el tamaño de lexema
@@ -106,8 +122,7 @@ void aceptar(token *componente, int linea){
                 //Si no tenemos que coger los caracteres restantes para llegar al tamaño de lexema en el bufferA
                 size_t longitudA = (TAM_BLOQUE - 1) - longitudB;//Tamaño lexema menos los caracteres que se han recogido en B
 
-                reportarError(SUPERA_TAMANHO);
-                lineaError(linea);//Indicamos en que línea del fichero fuente ha tenido lugar el lexema que ha superado el tamaño
+                lexemaMalFormado(SUPERA_TAMANHO);//Indicamos en que línea del fichero fuente ha tenido lugar el lexema que ha superado el tamaño
 
                 componente->lexema=(char*)malloc(sizeof (char)*(TAM_BLOQUE));//Le pasamos directamente este valor ya que para la reserva hay que usar TAM_BLOQUE-1 + 1 por el caracter nulo
 
@@ -128,8 +143,7 @@ void aceptar(token *componente, int linea){
 
             }else{
                 size_t longitudB = (TAM_BLOQUE-1) - longitudA;
-                reportarError(SUPERA_TAMANHO);
-                lineaError(linea);
+                lexemaMalFormado(SUPERA_TAMANHO);
                 componente->lexema=(char*)malloc(sizeof (char)*(TAM_BLOQUE));
                 memcpy(componente->lexema, &dobleCentinela.bufferB[TAM_BLOQUE-1-longitudB],longitudB);
                 memcpy(componente->lexema+longitudB, dobleCentinela.bufferA, longitudA);
@@ -164,13 +178,12 @@ void aceptar(token *componente, int linea){
 
                 if(longitudTotal>TAM_BLOQUE-1){
                     //Se ha superado el tamanho establecido para los lexemas
-                    reportarError(SUPERA_TAMANHO);
-                    lineaError(linea);
+                    lexemaMalFormado(SUPERA_TAMANHO);
                     longitudA= (TAM_BLOQUE-1)-longitudB;
                     componente->lexema=(char*)malloc(sizeof (char)*(TAM_BLOQUE));
                     memcpy(componente->lexema, &dobleCentinela.bufferA[TAM_BLOQUE-1-longitudA],longitudA);
                     memcpy(componente->lexema+longitudA, dobleCentinela.bufferB, longitudB);
-
+                    componente->lexema[TAM_BLOQUE-1]='\0';
                 }else{
 
                     componente->lexema=(char*)malloc(sizeof (char)*(longitudTotal+1));
@@ -178,11 +191,9 @@ void aceptar(token *componente, int linea){
                     memcpy(componente->lexema,dobleCentinela.inicio,longitudA);
                     //Copiamos del buffer B a componente.lexema
                     memcpy(componente->lexema+ longitudA, dobleCentinela.bufferB, longitudB);
-
+                    //Añadimos al lexema el caracter nulo
+                    componente->lexema[longitudTotal]='\0';
                 }
-                //Añadimos al lexema el caracter nulo
-                componente->lexema[longitudTotal]='\0';
-
             }
 
         }else{
@@ -204,12 +215,12 @@ void aceptar(token *componente, int linea){
 
                 if(longitudTotal>TAM_BLOQUE-1){
                     //Se ha superado el tamaó establecido para los lexemas
-                    reportarError(SUPERA_TAMANHO);
-                    lineaError(linea);
+                    lexemaMalFormado(SUPERA_TAMANHO);
                     longitudB= (TAM_BLOQUE-1)-longitudA;
                     componente->lexema=(char*)malloc(sizeof (char)*(TAM_BLOQUE));
                     memcpy(componente->lexema, &dobleCentinela.bufferB[TAM_BLOQUE-1-longitudB],longitudB);
                     memcpy(componente->lexema+longitudB, dobleCentinela.bufferA, longitudA);
+                    componente->lexema[TAM_BLOQUE-1]='\0';
                 }else{
                     componente->lexema=(char*)malloc(sizeof (char)*(longitudTotal+1));
 
@@ -217,16 +228,16 @@ void aceptar(token *componente, int linea){
                     memcpy(componente->lexema,dobleCentinela.inicio,longitudB);
                     //Copiamos del buffer B a componente.lexema
                     memcpy(componente->lexema+ longitudB, dobleCentinela.bufferA, longitudA);
+                    //Añadimos al lexema el caracter nulo
+                    componente->lexema[longitudTotal]='\0';
                 }
-                //Añadimos al lexema el caracter nulo
-                componente->lexema[longitudTotal]='\0';
             }
-
         }
     }
     //Una vez hemos aceptado el lexema, lo que hacemos es mover el puntero de inicio a donde está el delantero
     dobleCentinela.inicio=dobleCentinela.delantero;
 }
+
 //Finalizar sistema de entrada (Funcion donde liberaremos el buffer que contiene el contenido del fichero)
 void finalizarSistemaEntrada(){
     //Tenemos que cerrar el archivo y liberar los recursos usados por el sistema de entrada
