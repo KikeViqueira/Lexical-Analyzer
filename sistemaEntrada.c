@@ -6,6 +6,7 @@
 //Funciones
 void cargarBloque();
 
+//Variables globales
 FILE *codigoFuente;
 SistemaDobleCentinela dobleCentinela;
 int errorLinea=1;//Contador que nos indicará en que línea se ha producido el error
@@ -30,9 +31,9 @@ void initEntrada(char *archivo) {
     //Ponemos la bandera del siguiente bloque que se cargará
     dobleCentinela.bloque_cargar=1;
 }
+
 //Función que inicializa el bloque correspondiente que se le pasa por comandos, guardando en su correspondiente buffer el tamaño indicado del fichero de entrada
 void cargarBloque(){
-
     //Si estamos en el caso de que el bloque que vamos a cargar es el 0 -> BufferA, miramos si el inicio está en el.
     if(dobleCentinela.bloque_cargar==0){
         if(dobleCentinela.inicio>=dobleCentinela.bufferA && dobleCentinela.inicio<=dobleCentinela.bufferA + TAM_BLOQUE - 1){
@@ -68,6 +69,7 @@ void cargarBloque(){
         }
     }
 }
+
 //Función que le manda el siguiente caracter al analizador léxico
 char siguienteCaracter() {
     char c;
@@ -86,18 +88,16 @@ char siguienteCaracter() {
 
     return c;
 }
+
 //Función para retroceder un caracter
 void retrocederCaracter() {
     dobleCentinela.delantero--;
     if(*dobleCentinela.delantero=='\n') leerLinea=0; //Activamos el falg indicandole al sistema de entrada que cuando devuelva este \n en siguienteCaracter no lo tenga en cuenta como una linea del archivo
 }
 
-void omitirCaracter(){
+//Función para omitir un caracter o lexema
+void omitirCaracter_lexema(){
     //Igualamos la dirección de memoria de inicio con la de delantero, que ya estará apuntando al caracter siguiente a devolver
-    dobleCentinela.inicio=dobleCentinela.delantero;
-}
-
-void omitirLexema(){
     dobleCentinela.inicio=dobleCentinela.delantero;
 }
 

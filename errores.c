@@ -1,6 +1,3 @@
-//
-// Created by kike on 19/03/24.
-//
 #include <stdio.h>
 #include "errores.h"
 
@@ -15,7 +12,7 @@
 void reportarError(int estado){
     switch (estado) {
         case ERROR_FICHERO:
-            printf(RED"\"Uso incorrecto del programa\\n Uso: <nombre ejecutable> <nombre archivo>\\n\""RESET);
+            printf(RED"Uso incorrecto del programa\nUso: <nombre ejecutable> <nombre archivo>\n"RESET);
             break;
 
         case ENTERO_INVALIDO:
@@ -24,14 +21,6 @@ void reportarError(int estado){
 
         case FLOTANTE_INVALIDO:
             printf(BLUE"El flotante que se esta procesando no es valido, pero sera enviado de todas maneras...\n"RESET);
-            break;
-
-        case OP_DELI_INVALIDO:
-            printf(BLUE"El operador/delimitador que se esta procesando no es valido, pero sera enviado de todas maneras...\n"RESET);
-            break;
-
-        case LITERAL_INVALIDO:
-            printf(BLUE"El literal que se esta procesando no es valido, pero sera enviado de todas maneras...\n"RESET);
             break;
 
         case ID_INVALIDO:
